@@ -3,7 +3,7 @@ param(
 )
 
 try {
-    $versionName = $null
+    $pubspecVersionName = $null
 
     $versionCode = [int](git rev-list --count HEAD).Trim()
 
@@ -11,19 +11,34 @@ try {
 
     $updatedContent = foreach ($line in (Get-Content -Path 'pubspec.yaml' -Encoding UTF8)) {
         if ($line -match '^\s*version:\s*([\d\.]+)') {
-            $versionName = $matches[1]
+            $pubspecVersionName = $matches[1]
             if ($Arg -eq 'android') {
-                $versionName += '-' + $commitHash.Substring(0, 9)
+                $pubspecVersionName += '-' + $commitHash.Substring(0, 9)
             }
-            "version: $versionName+$versionCode"
+            "version: $pubspecVersionName+$versionCode"
         }
         else {
             $line
         }
     }
 
-    if ($null -eq $versionName) {
+    if ($null -eq $pubspecVersionName) {
         throw 'version not found'
+    }
+
+    $releaseTag = $env:RELEASE_TAG
+    $displayVersionName = if ([string]::IsNullOrWhiteSpace($releaseTag)) {
+        $pubspecVersionName
+    }
+    else {
+        $releaseTag.Trim()
+    }
+
+    $artifactVersion = if ([string]::IsNullOrWhiteSpace($releaseTag)) {
+        "$pubspecVersionName+$versionCode"
+    }
+    else {
+        $releaseTag.Trim()
     }
 
     $updatedContent | Set-Content -Path 'pubspec.yaml' -Encoding UTF8
@@ -31,7 +46,7 @@ try {
     $buildTime = [int]([DateTimeOffset]::Now.ToUnixTimeSeconds())
 
     $data = @{
-        'pili.name' = $versionName
+        'pili.name' = $displayVersionName
         'pili.code' = $versionCode
         'pili.hash' = $commitHash
         'pili.time' = $buildTime
@@ -39,7 +54,8 @@ try {
 
     $data | ConvertTo-Json -Compress | Out-File 'pili_release.json' -Encoding UTF8
 
-    Add-Content -Path $env:GITHUB_ENV -Value "version=$versionName+$versionCode"
+    Add-Content -Path $env:GITHUB_ENV -Value "version=$pubspecVersionName+$versionCode"
+    Add-Content -Path $env:GITHUB_ENV -Value "artifact_version=$artifactVersion"
 }
 catch {
     Write-Error "Prebuild Error: $($_.Exception.Message)"
