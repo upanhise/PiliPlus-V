@@ -9,6 +9,7 @@ import 'package:PiliPlus/utils/accounts/account.dart';
 import 'package:PiliPlus/utils/page_utils.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:device_info_plus/device_info_plus.dart';
 import 'package:dio/dio.dart';
 import 'package:flutter/foundation.dart' show kDebugMode;
@@ -35,6 +36,10 @@ abstract final class Update {
         return;
       }
       final data = res.data[0];
+      final tagName = '${data['tag_name']}';
+      if (isAuto && Pref.ignoredUpdateVersion == tagName) {
+        return;
+      }
       final int latest =
           DateTime.parse(data['created_at']).millisecondsSinceEpoch ~/ 1000;
       if (BuildConfig.buildTime >= latest) {
@@ -78,6 +83,21 @@ abstract final class Update {
                 ),
               ),
               actions: [
+                if (isAuto)
+                  TextButton(
+                    onPressed: () {
+                      SmartDialog.dismiss();
+                      GStorage.setting.put(
+                        SettingBoxKey.ignoredUpdateVersion,
+                        tagName,
+                      );
+                      SmartDialog.showToast('已忽略 $tagName');
+                    },
+                    child: Text(
+                      '忽略此版本',
+                      style: TextStyle(color: colorScheme.outline),
+                    ),
+                  ),
                 if (isAuto)
                   TextButton(
                     onPressed: () {

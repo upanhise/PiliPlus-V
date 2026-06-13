@@ -1,0 +1,15 @@
+{
+  "project": "PiliPlus fork",
+  "language": "zh-CN",
+  "codingRules": [
+    "优先小步修改，避免无关格式化",
+    "修改后先查看 git diff，再提交",
+    "配置项统一放入 SettingBoxKey 与 Pref getter",
+    "新增功能保持上游兼容，默认不改变旧用户行为"
+  ],
+  "validation": [
+    "flutter analyze",
+    "flutter build apk --release --split-per-abi --pub"
+  ],
+  "environmentNote": "当前 Android 沙箱未安装 Flutter/Dart SDK，本地仅做代码修改；构建使用外部 Flutter 环境或 GitHub Actions。"
+}
