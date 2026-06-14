@@ -17,10 +17,11 @@
   - 例如 release tag 为 `2.0.9.2` 时，APK 文件名形如 `PiliPlus_android_2.0.9.2_arm64-v8a.apk`。
   - 无 release tag 的临时构建保留旧版本号策略，并增加兜底 dev 文件名。
 - 更新检查逻辑改为优先比较 release tag / 应用版本号，解析失败时才回退到 release 创建时间比较。
+- Fork 版本的源码链接和更新检查源切换到 `upanhise/PiliPlus-V`，应用内检查更新会读取 fork 仓库 release。
 
 ### Fixed
 - 修复已安装最新版本但仍可能弹出更新提示的问题：
-  - 支持比较 `2.0.9`、`2.0.9.2`、`v2.0.9.2`、`2.0.9+5051`、`2.0.9-commit` 等版本格式。
+  - 支持比较 `2.0.9`、`2.0.9.2`、`v2.0.9.2`、`2.0.9+5051`、`2.0.9-commit`、`2.0.9.2-minis.1` 等版本格式。
   - 如果 release assets 文件名已包含当前 `versionName+versionCode`，直接判定为已是最新。
 - 更新下载逻辑增加 assets 为空或格式异常时的兜底，避免按钮点击无反馈。
 

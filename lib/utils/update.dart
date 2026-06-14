@@ -189,16 +189,16 @@ abstract final class Update {
   }
 
   static List<int>? _parseVersion(String version) {
-    final match = RegExp(r'v?(\d+(?:\.\d+)*)').firstMatch(version);
+    final match = RegExp(
+      r'v?(\d+(?:\.\d+)*)(?:-[A-Za-z]+\.(\d+))?',
+    ).firstMatch(version);
     if (match == null) {
       return null;
     }
-    return match
-        .group(1)!
-        .split('.')
-        .map(int.tryParse)
-        .whereType<int>()
-        .toList(growable: false);
+    return [
+      ...match.group(1)!.split('.').map(int.parse),
+      if (match.group(2) != null) int.parse(match.group(2)!),
+    ];
   }
 
   // 下载适用于当前系统的安装包
