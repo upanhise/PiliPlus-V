@@ -831,11 +831,7 @@ class VideoDetailController extends GetxController
     }
     _lastBangumiSourceToastPolicy = policy;
     _lastBangumiSourceToastAt = now;
-    SmartDialog.showToast(
-      policy == BangumiSourcePolicy.fallback
-          ? '当前使用自定义番剧源'
-          : '当前使用官方播放源',
-    );
+    SmartDialog.showToast('当前使用${policy.displayName}');
   }
 
   // 视频链接
@@ -874,7 +870,7 @@ class VideoDetailController extends GetxController
         ? BangumiSourceService.vipState
         : VipState.unknown;
     final selectedPolicy = isBangumiPlayback
-        ? BangumiSourceService.resolveInitialPolicy(vipState)
+        ? BangumiSourceService.resolveInitialPolicy()
         : BangumiSourcePolicy.official;
     if (isBangumiPlayback) {
       BangumiSourceService.logDecision(

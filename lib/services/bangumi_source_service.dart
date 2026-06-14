@@ -69,13 +69,8 @@ abstract final class BangumiSourceService {
     }
   }
 
-  static BangumiSourcePolicy resolveInitialPolicy(VipState vipState) {
-    return switch (vipState) {
-      VipState.vip => BangumiSourcePolicy.official,
-      VipState.nonVip || VipState.notLogin || VipState.unknown =>
-        BangumiSourcePolicy.official,
-    };
-  }
+  static BangumiSourcePolicy resolveInitialPolicy() =>
+      BangumiSourcePolicy.official;
 
   static bool get enableCustomSource => Pref.enableBangumiCustomSource;
 
@@ -124,7 +119,7 @@ abstract final class BangumiSourceService {
     _log(
       'fallbackPlayUrl placeholder url=$customSourceUrl epId=$epId seasonId=$seasonId cid=$cid bvid=$bvid',
     );
-    return const Error('当前版本仅提供自定义番剧源配置骨架，尚未接入实际源实现');
+    return const Error('自定义番剧源配置入口已启用，但实际源接口仍在开发中');
   }
 
   static bool _isOfficialPermissionError(Error error) {
@@ -136,6 +131,7 @@ abstract final class BangumiSourceService {
         msg.contains('专属') ||
         msg.contains('付费') ||
         msg.contains('购买') ||
+        // B站播放接口常见权限错误码：大会员专属/付费内容不可播放。
         error.code == 87007 ||
         error.code == 87008;
   }

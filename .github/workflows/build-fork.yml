@@ -1,4 +1,4 @@
-name: Build Fork (Test)
+name: Build Fork
 
 on:
   push:
@@ -8,11 +8,16 @@ on:
       - main
     paths-ignore:
       - "**.md"
+  pull_request:
+    branches:
+      - minis/**
+      - dev-start
+      - main
   workflow_dispatch:
 
 jobs:
-  android-test:
-    name: Android APK (Fork Test)
+  android-build:
+    name: Android APK
     runs-on: ubuntu-latest
     permissions:
       contents: read
@@ -54,13 +59,54 @@ jobs:
           echo "version=$version" >> $GITHUB_OUTPUT
           echo "artifact_version=fork-${version}-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
 
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        run: flutter analyze
+
+      - name: Flutter Test
+        shell: bash
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory found; skip flutter test."
+          fi
+
+      - name: Configure Release Signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Release signing secrets are incomplete; Gradle will use its configured fallback signing config."
+            exit 0
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > android/key.properties
+
       - name: Flutter Build APK
         run: flutter build apk --release --split-per-abi --dart-define-from-file=pili_release.json --pub
 
       - name: 重命名 APK
         run: |
           version="${{ steps.version.outputs.artifact_version }}"
-          for file in build/app/outputs/flutter-apk/app-*-release.apk; do
+          shopt -s nullglob
+          files=(build/app/outputs/flutter-apk/app-*-release.apk)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No release APK files found."
+            exit 1
+          fi
+          for file in "${files[@]}"; do
             abi=$(echo "$file" | sed -E 's|.*app-(.*)-release\.apk|\1|')
             mv "$file" "PiliPlus_android_${version}_${abi}.apk"
           done
@@ -70,18 +116,18 @@ jobs:
         with:
           name: Android_arm64-v8a
           path: PiliPlus_android_*_arm64-v8a.apk
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: 上传 Artifact (armeabi-v7a)
         uses: actions/upload-artifact@v4
         with:
           name: Android_armeabi-v7a
           path: PiliPlus_android_*_armeabi-v7a.apk
-          if-no-files-found: warn
+          if-no-files-found: error
 
       - name: 上传 Artifact (x86_64)
         uses: actions/upload-artifact@v4
         with:
           name: Android_x86_64
           path: PiliPlus_android_*_x86_64.apk
-          if-no-files-found: warn
+          if-no-files-found: error

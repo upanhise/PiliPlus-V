@@ -131,7 +131,7 @@ List<SettingsModel> get extraSettings => [
   ),
   const SwitchModel(
     title: '启用自定义番剧源',
-    subtitle: '仅提供自定义源配置入口，不内置任何第三方番剧源',
+    subtitle: '仅提供自定义源配置入口；实际源接口仍在开发中',
     leading: Icon(Icons.hub_outlined),
     setKey: SettingBoxKey.enableBangumiCustomSource,
     defaultVal: false,
@@ -142,7 +142,13 @@ List<SettingsModel> get extraSettings => [
     getSubtitle: () => Pref.bangumiCustomSourceUrl.isEmpty
         ? '填写你自有或授权的合法源服务地址'
         : Pref.bangumiCustomSourceUrl,
-    onTap: _showBangumiCustomSourceUrlDialog,
+    onTap: (context, setState) {
+      if (!Pref.enableBangumiCustomSource) {
+        SmartDialog.showToast('请先启用自定义番剧源');
+        return;
+      }
+      _showBangumiCustomSourceUrlDialog(context, setState);
+    },
   ),
   const SwitchModel(
     title: '官方权限失败时尝试自定义番剧源',
