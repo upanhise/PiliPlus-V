@@ -51,13 +51,9 @@ jobs:
         shell: pwsh
         run: lib/scripts/patch.ps1 android
 
-      - name: 获取版本号
-        id: version
-        shell: bash
-        run: |
-          version=$(grep -m1 '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//')
-          echo "version=$version" >> $GITHUB_OUTPUT
-          echo "artifact_version=fork-${version}-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+      - name: Set and Extract version
+        shell: pwsh
+        run: lib/scripts/build.ps1 android
 
       - name: Flutter Pub Get
         run: flutter pub get
@@ -99,7 +95,13 @@ jobs:
 
       - name: 重命名 APK
         run: |
-          version="${{ steps.version.outputs.artifact_version }}"
+          version="${{ env.artifact_version }}"
+          if [ -z "$version" ]; then
+            version="${{ env.version }}"
+          fi
+          if [ -z "$version" ]; then
+            version="dev-${GITHUB_SHA::9}"
+          fi
           shopt -s nullglob
           files=(build/app/outputs/flutter-apk/app-*-release.apk)
           if [ ${#files[@]} -eq 0 ]; then
