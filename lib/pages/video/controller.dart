@@ -166,8 +166,7 @@ class VideoDetailController extends GetxController
 
   PlayerStatus? playerStatus;
 
-  BangumiSourcePolicy? _lastBangumiSourceToastPolicy;
-  DateTime? _lastBangumiSourceToastAt;
+  BangumiSourcePolicy? _lastBangumiSourcePolicy;
 
   late final scrollKey = GlobalKey<ExtendedNestedScrollViewState>();
   late final RxBool isVertical;
@@ -822,16 +821,12 @@ class VideoDetailController extends GetxController
   Volume? volume;
 
   void _showBangumiSourceToast(BangumiSourcePolicy policy) {
-    final now = DateTime.now();
-    final isDuplicate = _lastBangumiSourceToastPolicy == policy &&
-        _lastBangumiSourceToastAt != null &&
-        now.difference(_lastBangumiSourceToastAt!) < const Duration(seconds: 5);
-    if (isDuplicate) {
+    final previousPolicy = _lastBangumiSourcePolicy;
+    _lastBangumiSourcePolicy = policy;
+    if (previousPolicy == null || previousPolicy == policy) {
       return;
     }
-    _lastBangumiSourceToastPolicy = policy;
-    _lastBangumiSourceToastAt = now;
-    SmartDialog.showToast('当前使用${policy.displayName}');
+    SmartDialog.showToast('已切换至${policy.displayName}');
   }
 
   // 视频链接
