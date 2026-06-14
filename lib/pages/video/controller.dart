@@ -166,6 +166,9 @@ class VideoDetailController extends GetxController
 
   PlayerStatus? playerStatus;
 
+  BangumiSourcePolicy? _lastBangumiSourceToastPolicy;
+  DateTime? _lastBangumiSourceToastAt;
+
   late final scrollKey = GlobalKey<ExtendedNestedScrollViewState>();
   late final RxBool isVertical;
   late final RxDouble scrollRatio = 0.0.obs;
@@ -818,6 +821,23 @@ class VideoDetailController extends GetxController
 
   Volume? volume;
 
+  void _showBangumiSourceToast(BangumiSourcePolicy policy) {
+    final now = DateTime.now();
+    final isDuplicate = _lastBangumiSourceToastPolicy == policy &&
+        _lastBangumiSourceToastAt != null &&
+        now.difference(_lastBangumiSourceToastAt!) < const Duration(seconds: 5);
+    if (isDuplicate) {
+      return;
+    }
+    _lastBangumiSourceToastPolicy = policy;
+    _lastBangumiSourceToastAt = now;
+    SmartDialog.showToast(
+      policy == BangumiSourcePolicy.fallback
+          ? '当前使用自定义番剧源'
+          : '当前使用官方播放源',
+    );
+  }
+
   // 视频链接
   Future<void> queryVideoUrl({
     bool fromReset = false,
@@ -847,6 +867,9 @@ class VideoDetailController extends GetxController
     final actualVideoType = _actualVideoType ?? videoType;
     final isBangumiPlayback =
         videoType == VideoType.pgc || args['pgcApi'] == true;
+    if (isBangumiPlayback) {
+      await BangumiSourceService.refreshVipState();
+    }
     final vipState = isBangumiPlayback
         ? BangumiSourceService.vipState
         : VipState.unknown;
@@ -895,8 +918,10 @@ class VideoDetailController extends GetxController
 
     if (result case Success(:final response)) {
       if (isBangumiPlayback && BangumiSourceService.showBangumiSourceToast) {
-        SmartDialog.showToast(
-          attemptedFallback ? '当前使用自定义番剧源' : '当前使用官方播放源',
+        _showBangumiSourceToast(
+          attemptedFallback
+              ? BangumiSourcePolicy.fallback
+              : BangumiSourcePolicy.official,
         );
       }
       data = response;

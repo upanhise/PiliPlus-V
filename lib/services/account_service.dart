@@ -17,7 +17,9 @@ class AccountService extends GetxService {
     if (userInfo == null || userInfo.vipStatus == null) {
       return VipState.unknown;
     }
-    return userInfo.vipStatus == 1 ? VipState.vip : VipState.nonVip;
+    final vipStatus = userInfo.vipStatus;
+    // B站用户信息接口中 vipStatus=1 表示有效大会员；其他已知值按非大会员处理。
+    return vipStatus == 1 ? VipState.vip : VipState.nonVip;
   }
 
   bool get isVip => vipState == VipState.vip;

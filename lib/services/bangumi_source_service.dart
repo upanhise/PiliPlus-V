@@ -1,13 +1,16 @@
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/common/bangumi_source_policy.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
 import 'package:PiliPlus/services/account_service.dart';
+import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:get/get.dart';
 
 abstract final class BangumiSourceService {
   static const _tag = '[BangumiPlay]';
+  static DateTime? _lastVipRefreshAt;
 
   static VipState get vipState {
     try {
@@ -15,6 +18,54 @@ abstract final class BangumiSourceService {
     } catch (e) {
       _log('vipState unknown: $e');
       return VipState.unknown;
+    }
+  }
+
+  static Future<VipState> refreshVipState() async {
+    late final AccountService accountService;
+    try {
+      accountService = Get.find<AccountService>();
+    } catch (e) {
+      _log('refreshVipState account service missing: $e');
+      return VipState.unknown;
+    }
+
+    if (!accountService.isLogin.value) {
+      return VipState.notLogin;
+    }
+
+    final now = DateTime.now();
+    if (_lastVipRefreshAt != null &&
+        now.difference(_lastVipRefreshAt!) < const Duration(minutes: 5)) {
+      return accountService.vipState;
+    }
+    _lastVipRefreshAt = now;
+
+    try {
+      final result = await UserHttp.userInfo();
+      if (result case Success(:final response)) {
+        if (response.isLogin != true) {
+          accountService
+            ..face.value = ''
+            ..isLogin.value = false;
+          await GStorage.userInfo.delete('userInfoCache');
+          return VipState.notLogin;
+        }
+
+        accountService.face.value = response.face ?? '';
+        if (!accountService.isLogin.value) {
+          accountService.isLogin.value = true;
+        }
+        if (response != Pref.userInfoCache) {
+          await GStorage.userInfo.put('userInfoCache', response);
+        }
+        return accountService.vipState;
+      }
+      _log('refreshVipState failed: $result');
+      return accountService.vipState;
+    } catch (e) {
+      _log('refreshVipState exception: $e');
+      return accountService.vipState;
     }
   }
 

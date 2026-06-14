@@ -848,7 +848,7 @@ void _showBangumiCustomSourceUrlDialog(
         autofocus: true,
         initialValue: value,
         keyboardType: TextInputType.url,
-        onChanged: (v) => value = v.trim(),
+        onChanged: (v) => value = _normalizeBangumiSourceUrl(v),
         decoration: const InputDecoration(
           hintText: 'https://example.com/api/bangumi',
         ),
@@ -863,19 +863,35 @@ void _showBangumiCustomSourceUrlDialog(
         ),
         TextButton(
           onPressed: () async {
+            value = _normalizeBangumiSourceUrl(value);
+            if (value.isNotEmpty && !_isValidBangumiSourceUrl(value)) {
+              SmartDialog.showToast('请输入以 http:// 或 https:// 开头的合法地址');
+              return;
+            }
             await GStorage.setting.put(
               SettingBoxKey.bangumiCustomSourceUrl,
               value,
             );
             Get.back();
             setState();
-            SmartDialog.showToast('已保存');
+            SmartDialog.showToast(value.isEmpty ? '已清空' : '已保存');
           },
           child: const Text('确定'),
         ),
       ],
     ),
   );
+}
+
+String _normalizeBangumiSourceUrl(String value) =>
+    value.trim().replaceFirst(RegExp(r'/+$'), '');
+
+bool _isValidBangumiSourceUrl(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null &&
+      uri.hasScheme &&
+      (uri.isScheme('http') || uri.isScheme('https')) &&
+      uri.host.isNotEmpty;
 }
 
 void _showReplyLengthDialog(BuildContext context, VoidCallback setState) {
