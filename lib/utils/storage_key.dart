@@ -86,6 +86,11 @@ abstract final class SettingBoxKey {
       horizontalMemberPage = 'horizontalMemberPage',
       replyLengthLimit = 'replyLengthLimit',
       showArgueMsg = 'showArgueMsg',
+      enableBangumiCustomSource = 'enableBangumiCustomSource',
+      bangumiCustomSourceUrl = 'bangumiCustomSourceUrl',
+      showBangumiSourceToast = 'showBangumiSourceToast',
+      tryBangumiCustomSourceOnOfficialFailure =
+          'tryBangumiCustomSourceOnOfficialFailure',
       reverseFromFirst = 'reverseFromFirst',
       badCertificateCallback = 'badCertificateCallback',
       continuePlayingPart = 'continuePlayingPart',

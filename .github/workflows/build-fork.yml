@@ -1,0 +1,87 @@
+name: Build Fork (Test)
+
+on:
+  push:
+    branches:
+      - minis/**
+      - dev-start
+      - main
+    paths-ignore:
+      - "**.md"
+  workflow_dispatch:
+
+jobs:
+  android-test:
+    name: Android APK (Fork Test)
+    runs-on: ubuntu-latest
+    permissions:
+      contents: read
+      actions: read
+
+    steps:
+      - name: 代码迁出
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 构建 Java 环境
+        uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+          cache-dependency-path: |
+            android/*.gradle*
+            android/**/gradle-wrapper.properties
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        id: flutter-action
+        with:
+          channel: stable
+          flutter-version-file: pubspec.yaml
+          cache: true
+
+      - name: Apply Patch
+        shell: pwsh
+        run: lib/scripts/patch.ps1 android
+
+      - name: 获取版本号
+        id: version
+        shell: bash
+        run: |
+          version=$(grep -m1 '^version:' pubspec.yaml | sed 's/version:[[:space:]]*//')
+          echo "version=$version" >> $GITHUB_OUTPUT
+          echo "artifact_version=fork-${version}-${GITHUB_SHA::7}" >> $GITHUB_OUTPUT
+
+      - name: Flutter Build APK
+        run: flutter build apk --release --split-per-abi --dart-define-from-file=pili_release.json --pub
+
+      - name: 重命名 APK
+        run: |
+          version="${{ steps.version.outputs.artifact_version }}"
+          for file in build/app/outputs/flutter-apk/app-*-release.apk; do
+            abi=$(echo "$file" | sed -E 's|.*app-(.*)-release\.apk|\1|')
+            mv "$file" "PiliPlus_android_${version}_${abi}.apk"
+          done
+
+      - name: 上传 Artifact (arm64-v8a)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android_arm64-v8a
+          path: PiliPlus_android_*_arm64-v8a.apk
+          if-no-files-found: warn
+
+      - name: 上传 Artifact (armeabi-v7a)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android_armeabi-v7a
+          path: PiliPlus_android_*_armeabi-v7a.apk
+          if-no-files-found: warn
+
+      - name: 上传 Artifact (x86_64)
+        uses: actions/upload-artifact@v4
+        with:
+          name: Android_x86_64
+          path: PiliPlus_android_*_x86_64.apk
+          if-no-files-found: warn

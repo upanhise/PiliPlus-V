@@ -451,6 +451,20 @@ abstract final class Pref {
   static bool get horizontalPreview =>
       _setting.get(SettingBoxKey.horizontalPreview, defaultValue: false);
 
+  static bool get enableBangumiCustomSource =>
+      _setting.get(SettingBoxKey.enableBangumiCustomSource, defaultValue: false);
+
+  static String get bangumiCustomSourceUrl =>
+      _setting.get(SettingBoxKey.bangumiCustomSourceUrl, defaultValue: '');
+
+  static bool get showBangumiSourceToast =>
+      _setting.get(SettingBoxKey.showBangumiSourceToast, defaultValue: false);
+
+  static bool get tryBangumiCustomSourceOnOfficialFailure => _setting.get(
+    SettingBoxKey.tryBangumiCustomSourceOnOfficialFailure,
+    defaultValue: true,
+  );
+
   static bool get openInBrowser =>
       _setting.get(SettingBoxKey.openInBrowser, defaultValue: false);
 

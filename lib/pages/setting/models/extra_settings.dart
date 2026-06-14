@@ -130,6 +130,34 @@ List<SettingsModel> get extraSettings => [
     defaultVal: true,
   ),
   const SwitchModel(
+    title: '启用自定义番剧源',
+    subtitle: '仅提供自定义源配置入口，不内置任何第三方番剧源',
+    leading: Icon(Icons.hub_outlined),
+    setKey: SettingBoxKey.enableBangumiCustomSource,
+    defaultVal: false,
+  ),
+  NormalModel(
+    title: '自定义番剧源地址',
+    leading: const Icon(Icons.link_outlined),
+    getSubtitle: () => Pref.bangumiCustomSourceUrl.isEmpty
+        ? '填写你自有或授权的合法源服务地址'
+        : Pref.bangumiCustomSourceUrl,
+    onTap: _showBangumiCustomSourceUrlDialog,
+  ),
+  const SwitchModel(
+    title: '官方权限失败时尝试自定义番剧源',
+    subtitle: '大会员不会自动降级；仅在官方权限失败时尝试自定义源接口',
+    leading: Icon(Icons.alt_route_outlined),
+    setKey: SettingBoxKey.tryBangumiCustomSourceOnOfficialFailure,
+    defaultVal: true,
+  ),
+  const SwitchModel(
+    title: '显示当前番剧源提示',
+    leading: Icon(Icons.info_outline),
+    setKey: SettingBoxKey.showBangumiSourceToast,
+    defaultVal: false,
+  ),
+  const SwitchModel(
     title: '默认展开视频简介',
     leading: Icon(Icons.expand_more),
     setKey: SettingBoxKey.alwaysExpandIntroPanel,
@@ -799,6 +827,49 @@ void _showDynDialog(BuildContext context) {
             } catch (e) {
               SmartDialog.showToast(e.toString());
             }
+          },
+          child: const Text('确定'),
+        ),
+      ],
+    ),
+  );
+}
+
+void _showBangumiCustomSourceUrlDialog(
+  BuildContext context,
+  VoidCallback setState,
+) {
+  String value = Pref.bangumiCustomSourceUrl;
+  showDialog(
+    context: context,
+    builder: (context) => AlertDialog(
+      title: const Text('自定义番剧源地址'),
+      content: TextFormField(
+        autofocus: true,
+        initialValue: value,
+        keyboardType: TextInputType.url,
+        onChanged: (v) => value = v.trim(),
+        decoration: const InputDecoration(
+          hintText: 'https://example.com/api/bangumi',
+        ),
+      ),
+      actions: [
+        TextButton(
+          onPressed: Get.back,
+          child: Text(
+            '取消',
+            style: TextStyle(color: ColorScheme.of(context).outline),
+          ),
+        ),
+        TextButton(
+          onPressed: () async {
+            await GStorage.setting.put(
+              SettingBoxKey.bangumiCustomSourceUrl,
+              value,
+            );
+            Get.back();
+            setState();
+            SmartDialog.showToast('已保存');
           },
           child: const Text('确定'),
         ),

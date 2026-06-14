@@ -6,13 +6,10 @@ import 'package:PiliPlus/models_new/pgc/pgc_info_model/new_ep.dart';
 import 'package:PiliPlus/models_new/video/video_detail/episode.dart'
     hide EpisodeItem;
 import 'package:PiliPlus/pages/video/controller.dart';
-import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
-import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/material.dart';
-import 'package:flutter_smart_dialog/flutter_smart_dialog.dart';
 import 'package:get/get.dart';
 
 class PgcPanel extends StatefulWidget {
@@ -40,8 +37,6 @@ class PgcPanel extends StatefulWidget {
 class _PgcPanelState extends State<PgcPanel> {
   late int currentIndex;
   late final ScrollController listViewScrollCtr;
-  // 默认未开通
-  late final bool vipStatus;
   late int cid;
   late final VideoDetailController videoDetailCtr;
   late final StreamSubscription<int> _listener;
@@ -54,8 +49,6 @@ class _PgcPanelState extends State<PgcPanel> {
     listViewScrollCtr = ScrollController(
       initialScrollOffset: currentIndex * 150.0,
     );
-
-    vipStatus = Pref.userInfoCache?.vipStatus != 1;
 
     videoDetailCtr = Get.find<VideoDetailController>(tag: widget.heroTag);
 
@@ -167,9 +160,6 @@ class _PgcPanelState extends State<PgcPanel> {
         child: InkWell(
           borderRadius: const BorderRadius.all(Radius.circular(6)),
           onTap: () {
-            if (item.badge == '会员' && Accounts.mainEqVideo && vipStatus) {
-              SmartDialog.showToast('需要大会员');
-            }
             widget.onChangeEpisode(item);
           },
           child: Padding(
