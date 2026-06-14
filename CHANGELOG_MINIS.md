@@ -21,7 +21,7 @@
 - 视频简介中的争议信息/AI 生成内容提示改为更醒目的红色加粗样式，提升可见性。
 - 新增番剧播放源策略脚手架：统一主账号会员状态判断、官方源权限失败后的备用源接口占位、日志与失败提示。
 - 新增自定义番剧源设置骨架：启用开关、源地址、官方失败后是否尝试、当前源提示开关。
-- Fork CI 工作流更名为 `Build Fork`，增加 `flutter pub get`、`flutter analyze`、可选 `flutter test`、可选 release signing，并在缺少 APK artifact 时直接失败。
+- Fork CI 工作流更名为 `Build Fork`，增加 `flutter pub get`、`flutter analyze --no-fatal-infos`、可选 `flutter test`、可选 release signing，并在缺少 APK artifact 时直接失败。
 
 ### Fixed
 - 番剧播放前刷新主账号 VIP 状态并做 5 分钟节流，降低本地缓存陈旧导致误降级的风险。

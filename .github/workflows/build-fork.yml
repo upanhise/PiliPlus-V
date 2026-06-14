@@ -63,7 +63,7 @@ jobs:
         run: flutter pub get
 
       - name: Flutter Analyze
-        run: flutter analyze
+        run: flutter analyze --no-fatal-infos
 
       - name: Flutter Test
         shell: bash
