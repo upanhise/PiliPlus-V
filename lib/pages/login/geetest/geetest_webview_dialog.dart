@@ -37,7 +37,11 @@ class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
   Webview? _linuxWebview;
   late bool _linuxWebviewLoading = true;
 
+<<<<<<< HEAD
   static String _showJs(String response) =>
+=======
+  String _showJs(String response) =>
+>>>>>>> b67756c15 (fix: mob geetest (#2341))
       't=Geetest($response).onSuccess(()=>R("success",t.getValidate())).onError(o=>R("error",o)).onClose(o=>R("close",o));t.onReady(()=>t.verify())';
 
   @override
@@ -202,9 +206,19 @@ class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
       );
     }
 
+<<<<<<< HEAD
     return Stack(
       children: [
         InAppWebView(
+=======
+    return AlertDialog(
+      title: const Text('验证码'),
+      contentPadding: const .symmetric(vertical: 16),
+      content: SizedBox(
+        width: 320,
+        height: 400,
+        child: InAppWebView(
+>>>>>>> b67756c15 (fix: mob geetest (#2341))
           webViewEnvironment: webViewEnvironment,
           initialSettings: InAppWebViewSettings(
             clearCache: true,
@@ -235,8 +249,11 @@ class _GeetestWebviewDialogState extends State<GeetestWebviewDialog> {
             horizontalScrollBarEnabled: false,
             verticalScrollBarEnabled: false,
             overScrollMode: .NEVER,
+<<<<<<< HEAD
 
             pageZoom: Platform.isIOS ? 3 : 1,
+=======
+>>>>>>> b67756c15 (fix: mob geetest (#2341))
           ),
           initialData: InAppWebViewInitialData(
             data:
