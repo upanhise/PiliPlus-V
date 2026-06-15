@@ -88,8 +88,8 @@ abstract final class BangumiSourceService {
     required VipState vipState,
     required LoadingState<PlayUrlModel> officialResult,
   }) {
-    // 已确认大会员无需 fallback；unknown 状态大概率非会员，允许 fallback
-    if (vipState == VipState.vip) {
+    // 大会员无需 fallback；未知状态保守处理（无法确认身份则不降级）
+    if (vipState == VipState.vip || vipState == VipState.unknown) {
       return false;
     }
     if (!tryCustomSourceOnOfficialFailure) {
