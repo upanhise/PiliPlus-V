@@ -225,10 +225,19 @@ abstract final class Update {
       }
 
       if (Platform.isAndroid) {
-        // 获取设备信息
-        AndroidDeviceInfo androidInfo = await DeviceInfoPlugin().androidInfo;
-        // [arm64-v8a]
-        download(androidInfo.supportedAbis.first);
+        // 获取设备信息，按 ABI 优先级逐一尝试
+        final AndroidDeviceInfo androidInfo = await DeviceInfoPlugin().androidInfo;
+        bool downloaded = false;
+        for (final abi in androidInfo.supportedAbis) {
+          try {
+            download(abi);
+            downloaded = true;
+            break;
+          } catch (_) {}
+        }
+        if (!downloaded) {
+          PageUtils.launchURL('${Constants.sourceCodeUrl}/releases/latest');
+        }
       } else {
         download(Platform.operatingSystem);
       }

@@ -72,6 +72,6 @@ class Error extends LoadingState<Never> {
 
   @override
   String toString() {
-    return errMsg ?? code?.toString() ?? '';
+    return errMsg ?? code?.toString() ?? '未知错误';
   }
 }

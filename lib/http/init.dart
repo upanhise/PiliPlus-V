@@ -129,8 +129,14 @@ class Request {
     );
   }
 
+  static StreamSubscription<List<ConnectivityResult>>? _connectivitySub;
+
   static void _watchConnectivity() {
-    Connectivity().onConnectivityChanged.skip(1).listen(_onConnectivityChanged);
+    _connectivitySub?.cancel();
+    _connectivitySub = Connectivity()
+        .onConnectivityChanged
+        .skip(1)
+        .listen(_onConnectivityChanged);
   }
 
   static (IOHttpClientAdapter, ConnectionManager?) _createPool() {
