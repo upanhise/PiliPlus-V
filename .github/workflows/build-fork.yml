@@ -40,11 +40,11 @@ jobs:
             android/**/gradle-wrapper.properties
 
       - name: 安装 Flutter
-        uses: subosito/flutter-action@v2
+        uses: subosito/flutter-action@v3
         id: flutter-action
         with:
           channel: stable
-          flutter-version-file: pubspec.yaml
+          flutter-version: 3.44.2
           cache: true
 
       - name: Apply Patch
