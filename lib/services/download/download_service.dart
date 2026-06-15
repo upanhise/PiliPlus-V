@@ -182,7 +182,11 @@ class DownloadService extends GetxService {
     pgc.EpisodeItem episode,
     VideoQuality quality,
   ) {
-    final cid = episode.cid!;
+    final cid = episode.cid;
+    if (cid == null) {
+      SmartDialog.showToast('番剧分P数据异常，无法下载');
+      return;
+    }
     if (downloadList.indexWhere((e) => e.cid == cid) != -1) {
       return;
     }
