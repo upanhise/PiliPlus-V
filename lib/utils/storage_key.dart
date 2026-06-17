@@ -91,6 +91,11 @@ abstract final class SettingBoxKey {
       showBangumiSourceToast = 'showBangumiSourceToast',
       tryBangumiCustomSourceOnOfficialFailure =
           'tryBangumiCustomSourceOnOfficialFailure',
+      bangumiEmbyServerUrl = 'bangumiEmbyServerUrl',
+      bangumiEmbyLibraryId = 'bangumiEmbyLibraryId',
+      bangumiEmbyUsername = 'bangumiEmbyUsername',
+      bangumiEmbyAccessToken = 'bangumiEmbyAccessToken',
+      bangumiEmbyUserId = 'bangumiEmbyUserId',
       reverseFromFirst = 'reverseFromFirst',
       badCertificateCallback = 'badCertificateCallback',
       continuePlayingPart = 'continuePlayingPart',

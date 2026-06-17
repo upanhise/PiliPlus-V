@@ -3,6 +3,7 @@ import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/models/common/bangumi_source_policy.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
 import 'package:PiliPlus/services/account_service.dart';
+import 'package:PiliPlus/services/emby_source_service.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
@@ -103,6 +104,9 @@ abstract final class BangumiSourceService {
     String? bvid,
     int? epId,
     int? seasonId,
+    String? seriesTitle,
+    String? episodeTitle,
+    int? episodeIndex,
   }) async {
     _log(
       'selectedPolicy=${BangumiSourcePolicy.fallback.name} '
@@ -116,6 +120,20 @@ abstract final class BangumiSourceService {
       _log('fallbackPlayUrl missing custom source url');
       return const Error('自定义番剧源地址未配置');
     }
+
+    // 优先使用新的 Emby 源服务
+    if (EmbySourceService.hasServerUrl) {
+      return EmbySourceService.fetchPlayUrl(
+        cid: cid,
+        episodeIndex: episodeIndex ?? 1,
+        seriesTitle: seriesTitle,
+        episodeTitle: episodeTitle,
+        bvid: bvid,
+        epId: epId,
+        seasonId: seasonId,
+      );
+    }
+
     _log(
       'fallbackPlayUrl placeholder url=$customSourceUrl epId=$epId seasonId=$seasonId cid=$cid bvid=$bvid',
     );

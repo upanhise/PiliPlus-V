@@ -157,6 +157,41 @@ class VideoDetailController extends GetxController
   bool get showRelatedVideo =>
       isFileSource ? false : plPlayerController.showRelatedVideo;
 
+  /// 当前番剧总标题（用于 Emby 自定义源匹配）
+  String? get _bangumiSeriesTitle {
+    if (isUgc) return null;
+    try {
+      return Get.find<PgcIntroController>(tag: heroTag).pgcItem.title;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 当前剧集标题（用于 Emby 自定义源反查）
+  String? get _bangumiEpisodeTitle {
+    if (isUgc) return null;
+    try {
+      final episodes = Get.find<PgcIntroController>(tag: heroTag).pgcItem.episodes;
+      final ep = episodes?.firstWhereOrNull((e) => e.cid == cid.value || e.epId == epId);
+      return ep?.longTitle ?? ep?.title;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 当前集号（从 1 开始），用于 Emby IndexNumber 匹配
+  int? get _bangumiEpisodeIndex {
+    if (isUgc) return null;
+    try {
+      final episodes = Get.find<PgcIntroController>(tag: heroTag).pgcItem.episodes;
+      if (episodes == null || episodes.isEmpty) return null;
+      final index = episodes.indexWhere((e) => e.cid == cid.value || e.epId == epId);
+      return index >= 0 ? index + 1 : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   ScrollController? introScrollCtr;
   ScrollController get effectiveIntroScrollCtr =>
       introScrollCtr ??= ScrollController();
@@ -902,6 +937,9 @@ class VideoDetailController extends GetxController
           bvid: bvid,
           epId: epId,
           seasonId: seasonId,
+          seriesTitle: _bangumiSeriesTitle,
+          episodeTitle: _bangumiEpisodeTitle,
+          episodeIndex: _bangumiEpisodeIndex,
         );
         BangumiSourceService.logFallbackResult(result);
       }

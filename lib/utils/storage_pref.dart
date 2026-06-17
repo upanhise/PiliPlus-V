@@ -465,6 +465,21 @@ abstract final class Pref {
     defaultValue: true,
   );
 
+  static String get bangumiEmbyServerUrl =>
+      _setting.get(SettingBoxKey.bangumiEmbyServerUrl, defaultValue: '');
+
+  static String get bangumiEmbyLibraryId =>
+      _setting.get(SettingBoxKey.bangumiEmbyLibraryId, defaultValue: '');
+
+  static String get bangumiEmbyUsername =>
+      _setting.get(SettingBoxKey.bangumiEmbyUsername, defaultValue: '');
+
+  static String get bangumiEmbyAccessToken =>
+      _setting.get(SettingBoxKey.bangumiEmbyAccessToken, defaultValue: '');
+
+  static String get bangumiEmbyUserId =>
+      _setting.get(SettingBoxKey.bangumiEmbyUserId, defaultValue: '');
+
   static bool get openInBrowser =>
       _setting.get(SettingBoxKey.openInBrowser, defaultValue: false);
 
