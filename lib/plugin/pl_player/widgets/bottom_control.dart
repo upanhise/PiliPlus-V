@@ -49,6 +49,7 @@ class BottomControl extends StatelessWidget {
   }
 
   Widget _buildAndroidNativeProgressBar({
+    required BuildContext context,
     required int value,
     required int max,
     required Color primary,
@@ -111,6 +112,7 @@ class BottomControl extends StatelessWidget {
                       final style = Pref.playerProgressBarStyle;
                       if (style == 'androidNative') {
                         return _buildAndroidNativeProgressBar(
+                          context: context,
                           value: value,
                           max: max,
                           primary: primary,
