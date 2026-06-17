@@ -172,6 +172,13 @@ List<SettingsModel> get extraSettings => [
     },
   ),
   const SwitchModel(
+    title: '非会员/访客时优先使用自定义番剧源',
+    subtitle: '未开通大会员或退出登录时，直接跳过官方源试看，使用 Emby 源',
+    leading: Icon(Icons.switch_access_shortcut_outlined),
+    setKey: SettingBoxKey.preferCustomSourceForNonVip,
+    defaultVal: true,
+  ),
+  const SwitchModel(
     title: '官方权限失败时尝试自定义番剧源',
     subtitle: '大会员不会自动降级；仅在官方权限失败时尝试自定义源接口',
     leading: Icon(Icons.alt_route_outlined),
