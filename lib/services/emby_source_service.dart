@@ -137,9 +137,7 @@ abstract final class EmbySourceService {
     }
 
     // 找到对应 Episode
-    if (episodeId == null) {
-      episodeId = await _findEpisodeIdByIndex(seriesId, episodeIndex);
-    }
+    episodeId ??= await _findEpisodeIdByIndex(seriesId, episodeIndex);
     if (episodeId == null) {
       return Error('未在 Emby 找到第 $episodeIndex 集');
     }
@@ -151,7 +149,7 @@ abstract final class EmbySourceService {
       userId: userId,
       itemId: episodeId,
     );
-    if (playbackRes is Error) return playbackRes as Error;
+    if (playbackRes is Error) return playbackRes;
     final playbackData = (playbackRes as Success<Map<String, dynamic>>).response;
 
     return _buildPlayUrlModel(playbackData, episodeId);

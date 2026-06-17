@@ -916,7 +916,7 @@ void _showEmbySourceConfigDialog(
                     color: Theme.of(context).colorScheme.secondary,
                   ),
                 ),
-            ],
+              ],
           ),
         ),
         actions: [
