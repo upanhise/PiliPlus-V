@@ -373,15 +373,15 @@ abstract final class EmbySourceService {
     if (streamUrl == null || streamUrl.isEmpty) {
       return const Error('Emby 没有可用的播放地址');
     }
-    _log('播放地址 streamUrl=$streamUrl container=$container');
-
-    // 合并相对 URL 并追加 api_key 鉴权参数
-    streamUrl = _resolveEmbyUrl(streamUrl);
 
     final runTimeTicks = source['RunTimeTicks'];
     final durationMs = runTimeTicks is int ? runTimeTicks ~/ 10000 : 0;
     final size = source['Size'] is int ? source['Size'] as int : 0;
     final container = source['Container'] as String? ?? 'mp4';
+    _log('播放地址 streamUrl=$streamUrl container=$container');
+
+    // 合并相对 URL 并追加 api_key 鉴权参数
+    streamUrl = _resolveEmbyUrl(streamUrl);
 
     // 对 HLS/TS 容器统一返回 mp4 容器名，避免播放器层解析异常。
     final format = _isHlsContainer(container) ? 'mp4' : container;

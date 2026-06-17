@@ -460,6 +460,11 @@ abstract final class Pref {
   static bool get showBangumiSourceToast =>
       _setting.get(SettingBoxKey.showBangumiSourceToast, defaultValue: false);
 
+  static bool get showBangumiSourceDebugOverlay => _setting.get(
+    SettingBoxKey.showBangumiSourceDebugOverlay,
+    defaultValue: false,
+  );
+
   static bool get tryBangumiCustomSourceOnOfficialFailure => _setting.get(
     SettingBoxKey.tryBangumiCustomSourceOnOfficialFailure,
     defaultValue: true,

@@ -52,6 +52,7 @@ import 'package:PiliPlus/plugin/pl_player/models/heart_beat_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
 import 'package:PiliPlus/services/bangumi_source_service.dart';
 import 'package:PiliPlus/services/download/download_service.dart';
+import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/connectivity_utils.dart';
 import 'package:PiliPlus/utils/extension/context_ext.dart';
@@ -864,6 +865,20 @@ class VideoDetailController extends GetxController
     SmartDialog.showToast('已切换至${policy.displayName}');
   }
 
+  void _showBangumiDebugOverlay({String? header, String? body}) {
+    if (!BangumiSourceService.showBangumiSourceDebugOverlay) return;
+    final text = [
+      if (header != null && header.isNotEmpty) header,
+      if (body != null && body.isNotEmpty) body,
+    ].join('\n');
+    if (text.isEmpty) return;
+    // 使用 AttachDialog 浮层，持续 4 秒，便于截图。
+    SmartDialog.showToast(
+      text,
+      displayTime: const Duration(seconds: 4),
+    );
+  }
+
   // 视频链接
   Future<void> queryVideoUrl({
     bool fromReset = false,
@@ -911,6 +926,10 @@ class VideoDetailController extends GetxController
         vipState: vipState,
         policy: selectedPolicy,
       );
+      _showBangumiDebugOverlay(
+        header: 'VIP: ${vipState.name}',
+        body: '策略: ${selectedPolicy.displayName}',
+      );
     }
 
     LoadingState<PlayUrlModel> result;
@@ -930,6 +949,10 @@ class VideoDetailController extends GetxController
         episodeIndex: _bangumiEpisodeIndex,
       );
       BangumiSourceService.logFallbackResult(result);
+      _showBangumiDebugOverlay(
+        header: 'fallback',
+        body: result is Success ? '成功' : '失败: ${(result as Error).errMsg}',
+      );
     } else {
       result = await VideoHttp.videoUrl(
         cid: cid.value,
@@ -959,6 +982,10 @@ class VideoDetailController extends GetxController
             episodeIndex: _bangumiEpisodeIndex,
           );
           BangumiSourceService.logFallbackResult(result);
+          _showBangumiDebugOverlay(
+            header: '官方失败→fallback',
+            body: result is Success ? '成功' : '失败: ${(result as Error).errMsg}',
+          );
         }
       }
     }

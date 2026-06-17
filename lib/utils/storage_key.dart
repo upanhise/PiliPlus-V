@@ -89,6 +89,7 @@ abstract final class SettingBoxKey {
       enableBangumiCustomSource = 'enableBangumiCustomSource',
       bangumiCustomSourceUrl = 'bangumiCustomSourceUrl',
       showBangumiSourceToast = 'showBangumiSourceToast',
+      showBangumiSourceDebugOverlay = 'showBangumiSourceDebugOverlay',
       tryBangumiCustomSourceOnOfficialFailure =
           'tryBangumiCustomSourceOnOfficialFailure',
       bangumiEmbyServerUrl = 'bangumiEmbyServerUrl',

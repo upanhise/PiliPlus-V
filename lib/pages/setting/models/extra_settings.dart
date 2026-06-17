@@ -192,6 +192,13 @@ List<SettingsModel> get extraSettings => [
     defaultVal: false,
   ),
   const SwitchModel(
+    title: '显示番剧源调试浮层',
+    subtitle: '在播放番剧时浮层展示 VIP 状态、策略选择、fallback 结果与错误原因',
+    leading: Icon(Icons.bug_report_outlined),
+    setKey: SettingBoxKey.showBangumiSourceDebugOverlay,
+    defaultVal: false,
+  ),
+  const SwitchModel(
     title: '默认展开视频简介',
     leading: Icon(Icons.expand_more),
     setKey: SettingBoxKey.alwaysExpandIntroPanel,
