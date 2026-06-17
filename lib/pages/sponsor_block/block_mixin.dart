@@ -28,6 +28,7 @@ mixin BlockConfigMixin {
   late final blockSettings = Pref.blockSettings;
   late final enableList = blockSettings
       .where((item) => item.second != SkipType.disable)
+      .where((item) => item.first.isNotEmpty)
       .map((item) => item.first.name)
       .toSet();
 

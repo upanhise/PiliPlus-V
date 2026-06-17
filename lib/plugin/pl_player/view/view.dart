@@ -159,19 +159,21 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   void _getSystemBrightness() {
+    // ignore: discarded_futures
     ScreenBrightnessPlatform.instance.system.then((res) {
       if (mounted) {
         _brightnessValue.value = res;
       }
-    });
+    }).catchError((_) {});
   }
 
   void _getAppBrightness() {
+    // ignore: discarded_futures
     ScreenBrightnessPlatform.instance.application.then((res) {
       if (mounted) {
         _brightnessValue.value = res;
       }
-    });
+    }).catchError((_) {});
   }
 
   void _onVolumeChanged(double value) {
@@ -194,11 +196,12 @@ class _PLVideoPlayerState extends State<PLVideoPlayer>
   }
 
   void _getCurrVolume() {
+    // ignore: discarded_futures
     FlutterVolumeController.getVolume().then((res) {
       if (mounted) {
         plPlayerController.volume.value = res!;
       }
-    });
+    }).catchError((_) {});
   }
 
   int? tmpSubtitlePaddingB;

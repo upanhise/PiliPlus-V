@@ -59,6 +59,7 @@ class ArticleController extends CommonDynController {
 
     // to opus
     if (type == 'read') {
+      // ignore: discarded_futures
       UrlUtils.parseRedirectUrl('https://www.bilibili.com/read/cv$id/').then((
         url,
       ) {
@@ -71,7 +72,7 @@ class ArticleController extends CommonDynController {
           Get.putOrFind(() => this, tag: type + id);
         }
         init();
-      });
+      }).catchError((_) => init());
     } else {
       init();
     }

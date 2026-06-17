@@ -61,7 +61,7 @@ class _AboutPageState extends State<AboutPage> {
       if (mounted) {
         cacheSize.value = CacheManager.formatSize(res);
       }
-    });
+    }).catchError((_) {});
   }
 
   void _showDialog() => showDialog(

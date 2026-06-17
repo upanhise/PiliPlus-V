@@ -11,7 +11,7 @@ abstract final class CacheManager {
   static late final DefaultCacheManager manager;
 
   static Future<void> ensureInitialized() =>
-      DefaultCacheManager.init().then((i) => manager = i);
+      DefaultCacheManager.init().then((i) => manager = i).catchError((_) {});
 
   // 获取缓存目录
   @pragma('vm:notify-debugger-on-exception')

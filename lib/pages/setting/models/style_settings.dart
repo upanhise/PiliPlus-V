@@ -510,9 +510,9 @@ void _showSpringDialog(BuildContext context, _) {
   bool physicalMode = true;
 
   void physical2Duration() {
-    final mass = double.parse(springDescription[0]);
-    final stiffness = double.parse(springDescription[1]);
-    final damping = double.parse(springDescription[2]);
+    final mass = double.tryParse(springDescription[0]) ?? 1.0;
+    final stiffness = double.tryParse(springDescription[1]) ?? 1.0;
+    final damping = double.tryParse(springDescription[2]) ?? 0.5;
 
     final duration = math.sqrt(4 * math.pi * math.pi * mass / stiffness);
     final dampingRatio = damping / (2.0 * math.sqrt(mass * stiffness));
@@ -526,8 +526,8 @@ void _showSpringDialog(BuildContext context, _) {
 
   /// from [SpringDescription.withDurationAndBounce] but with higher precision
   void duration2Physical() {
-    final duration = double.parse(springDescription[0]);
-    final bounce = double.parse(springDescription[1]).clamp(-1.0, 1.0);
+    final duration = double.tryParse(springDescription[0]) ?? 0.3;
+    final bounce = (double.tryParse(springDescription[1]) ?? 0.0).clamp(-1.0, 1.0);
 
     final stiffness = 4 * math.pi * math.pi / math.pow(duration, 2);
     final dampingRatio = bounce > 0 ? 1.0 - bounce : 1.0 / (bounce + 1);

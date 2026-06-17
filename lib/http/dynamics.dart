@@ -217,7 +217,7 @@ abstract final class DynamicsHttp {
           },
           if (topic != null)
             "topic": {
-              "id": topic.first,
+              "id": topic.isNotEmpty ? topic.first : 0,
               "name": topic.second,
               "from_source": "dyn.web.list",
               "from_topic_id": 0,
@@ -763,7 +763,7 @@ abstract final class DynamicsHttp {
           },
           if (topic != null)
             "topic": {
-              "id": topic.first,
+              "id": topic.isNotEmpty ? topic.first : 0,
               "name": topic.second,
               "from_source": "dyn.web.list",
               "from_topic_id": 0,

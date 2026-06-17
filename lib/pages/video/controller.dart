@@ -1060,7 +1060,9 @@ class VideoDetailController extends GetxController
       final List<VideoItem> videoList = data.dash!.video!;
       // if (kDebugMode) debugPrint("allVideosList:${allVideosList}");
       // 当前可播放的最高质量视频
-      final curHighestVideoQa = videoList.first.quality.code;
+      final curHighestVideoQa = videoList.isNotEmpty
+          ? videoList.first.quality.code
+          : VideoQuality.k480.code;
       // 预设的画质为null，则当前可用的最高质量
       int targetVideoQa = curHighestVideoQa;
       if (data.acceptQuality?.isNotEmpty == true &&
@@ -1080,13 +1082,17 @@ class VideoDetailController extends GetxController
 
       /// 优先顺序 设置中指定解码格式 -> 当前可选的首个解码格式
       final List<FormatItem> supportFormats = data.supportFormats!;
-      // 根据画质选编码格式
-      final List<String> supportDecodeFormats = supportFormats
-          .firstWhere(
-            (e) => e.quality == targetVideoQa,
-            orElse: () => supportFormats.first,
-          )
-          .codecs!;
+      List<String> supportDecodeFormats;
+      if (supportFormats.isNotEmpty) {
+        supportDecodeFormats = supportFormats
+            .firstWhere(
+              (e) => e.quality == targetVideoQa,
+              orElse: () => supportFormats.first,
+            )
+            .codecs!;
+      } else {
+        supportDecodeFormats = [];
+      }
       // 默认从设置中取AV1
       currentDecodeFormats = VideoDecodeFormatType.fromString(cacheDecode);
       VideoDecodeFormatType secondDecodeFormats =
@@ -1103,17 +1109,19 @@ class VideoDetailController extends GetxController
       }
       if (flag == 2) {
         currentDecodeFormats = secondDecodeFormats;
-      } else if (flag == 0) {
+      } else if (flag == 0 && supportDecodeFormats.isNotEmpty) {
         currentDecodeFormats = VideoDecodeFormatType.fromString(
           supportDecodeFormats.first,
         );
       }
 
       /// 取出符合当前解码格式的videoItem
-      firstVideo = videosList.firstWhere(
-        (e) => currentDecodeFormats.codes.any(e.codecs!.startsWith),
-        orElse: () => videosList.first,
-      );
+      firstVideo = videosList.isNotEmpty
+          ? videosList.firstWhere(
+              (e) => currentDecodeFormats.codes.any(e.codecs!.startsWith),
+              orElse: () => videosList.first,
+            )
+          : VideoItem(quality: VideoQuality.high1080);
       _setVideoHeight();
 
       videoUrl = VideoUtils.getCdnUrl(firstVideo.playUrls);
@@ -1131,10 +1139,12 @@ class VideoDetailController extends GetxController
             audioIds.any((e) => e > plPlayerController.cacheAudioQa)) {
           closestNumber = AudioQuality.k192.code;
         }
-        firstAudio = audioList.firstWhere(
-          (e) => e.id == closestNumber,
-          orElse: () => audioList.first,
-        );
+        firstAudio = audioList.isNotEmpty
+            ? audioList.firstWhere(
+                (e) => e.id == closestNumber,
+                orElse: () => audioList.first,
+              )
+            : null;
         audioUrl = VideoUtils.getCdnUrl(firstAudio.playUrls, isAudio: true);
         if (firstAudio.id case final int id?) {
           currentAudioQa = AudioQuality.fromCode(id);

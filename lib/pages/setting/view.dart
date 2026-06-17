@@ -201,12 +201,13 @@ class _SettingPageState extends State<SettingPage> {
                   title: Text('退出登录', style: titleStyle),
                 ),
         ),
-        ListTile(
-          tileColor: _getTileColor(theme, _items.last.type),
-          onTap: () => _toPage(_items.last.type),
-          leading: _items.last.icon,
-          title: Text(_items.last.type.title, style: titleStyle),
-        ),
+        if (_items.isNotEmpty)
+          ListTile(
+            tileColor: _getTileColor(theme, _items.last.type),
+            onTap: () => _toPage(_items.last.type),
+            leading: _items.last.icon,
+            title: Text(_items.last.type.title, style: titleStyle),
+          ),
       ],
     );
   }

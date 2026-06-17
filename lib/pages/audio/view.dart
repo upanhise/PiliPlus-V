@@ -739,11 +739,14 @@ class _AudioPageState extends State<AudioPage> {
             ActionItem(
               icon: const Icon(FontAwesomeIcons.circlePlay),
               onTap: () {
+                final sid = audioItem.associatedItem.subId;
                 _controller.player?.pause();
-                PageUtils.toVideoPage(
-                  cid: audioItem.associatedItem.subId.first.toInt(),
-                  aid: audioItem.associatedItem.oid.toInt(),
-                );
+                if (sid.isNotEmpty) {
+                  PageUtils.toVideoPage(
+                    cid: sid.first.toInt(),
+                    aid: audioItem.associatedItem.oid.toInt(),
+                  );
+                }
               },
               selectStatus: false,
               semanticsLabel: '看MV',

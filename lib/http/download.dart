@@ -43,7 +43,7 @@ abstract final class DownloadHttp {
       final Dash? dash = response.dash;
       if (dash != null) {
         final List<VideoItem> videoList = dash.video!;
-        final curHighestVideoQa = videoList.first.quality.code;
+        final curHighestVideoQa = videoList.isNotEmpty ? videoList.first.quality.code : VideoQuality.k480.code;
         final preferVideoQa = entry.preferedVideoQuality;
         int targetVideoQa = curHighestVideoQa;
         if (response.acceptQuality?.isNotEmpty == true &&
@@ -63,10 +63,12 @@ abstract final class DownloadHttp {
         /// 优先顺序 设置中指定解码格式 -> 当前可选的首个解码格式
         final List<FormatItem> supportFormats = response.supportFormats!;
         // 根据画质选编码格式
-        final FormatItem targetSupportFormats = supportFormats.firstWhere(
-          (e) => e.quality == targetVideoQa,
-          orElse: () => supportFormats.first,
-        );
+        final FormatItem targetSupportFormats = supportFormats.isNotEmpty
+            ? supportFormats.firstWhere(
+                (e) => e.quality == targetVideoQa,
+                orElse: () => supportFormats.first,
+              )
+            : FormatItem(quality: targetVideoQa);
         final List<String> supportDecodeFormats = targetSupportFormats.codecs!;
 
         entry
@@ -104,10 +106,15 @@ abstract final class DownloadHttp {
         }
 
         /// 取出符合当前解码格式的videoItem
-        final videoDash = videosList.firstWhere(
-          (e) => currentDecodeFormats.codes.any(e.codecs!.startsWith),
-          orElse: () => videosList.first,
-        );
+        final VideoItem videoDash;
+        if (videosList.isNotEmpty) {
+          videoDash = videosList.firstWhere(
+            (e) => currentDecodeFormats.codes.any(e.codecs!.startsWith),
+            orElse: () => videosList.first,
+          );
+        } else {
+          return const Error('视频流为空');
+        }
 
         final videoUrl = VideoUtils.getCdnUrl(videoDash.playUrls);
 
@@ -139,10 +146,15 @@ abstract final class DownloadHttp {
               audioIds.any((e) => e > preferAudioQa)) {
             closestNumber = AudioQuality.k192.code;
           }
-          final AudioItem audioDash = audioDashList.firstWhere(
-            (e) => e.id == closestNumber,
-            orElse: () => audioDashList.first,
-          );
+          final AudioItem audioDash;
+          if (audioDashList.isNotEmpty) {
+            audioDash = audioDashList.firstWhere(
+              (e) => e.id == closestNumber,
+              orElse: () => audioDashList.first,
+            );
+          } else {
+            return const Error('音频流为空');
+          }
           final audioUrl = VideoUtils.getCdnUrl(
             audioDash.playUrls,
             isAudio: true,

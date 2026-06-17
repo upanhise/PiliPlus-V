@@ -147,6 +147,7 @@ void main() async {
       ),
     );
     if (Platform.isAndroid) {
+      // ignore: discarded_futures
       FlutterDisplayMode.supported.then((mode) {
         final String? storageDisplay = GStorage.setting.get(
           SettingBoxKey.displayMode,
@@ -158,7 +159,7 @@ void main() async {
           );
         }
         FlutterDisplayMode.setPreferredMode(displayMode ?? DisplayMode.auto);
-      });
+      }).catchError((_) {});
     } else {
       ScreenBrightnessPlatform.instance.setAutoReset(false);
     }

@@ -44,7 +44,7 @@ abstract class CommonDynPageState<T extends StatefulWidget> extends State<T>
 
   void listener() {
     final pos = scrollController.positions;
-    controller.showTitle.value = pos.first.pixels > 55;
+    controller.showTitle.value = pos.isNotEmpty ? pos.first.pixels > 55 : false;
     if (pos.any((e) => e.userScrollDirection == .forward)) {
       showFab();
     } else if (pos.any((e) => e.userScrollDirection == .reverse)) {

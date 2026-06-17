@@ -705,7 +705,6 @@ Future<void> audioNormalization(
   final res = await showDialog<String>(
     context: context,
     builder: (context) {
-      String audioNormalization = fallback
           ? Pref.fallbackNormalization
           : Pref.audioNormalization;
       Set<String> values = {

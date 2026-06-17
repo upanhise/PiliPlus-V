@@ -230,10 +230,11 @@ abstract final class PiliScheme {
               // bilibili://comment/msg_fold/1/22222/33333/11111/?enterUri=bilibili://video/22222 //(aid)
               // bilibili://comment/msg_fold/11/22222/33333/11111/?enterUri=bilibili://following/detail/44444 (dynId)
               final pathSegments = uri.pathSegments;
+              if (pathSegments.length < 4) return false;
               final queryParameters = uri.queryParameters;
-              final type = int.parse(pathSegments[1]); // business_id
-              final oid = int.parse(pathSegments[2]); // subject_id
-              final rootId = int.parse(pathSegments[3]); // root_id // target_id
+              final type = int.tryParse(pathSegments[1]) ?? 0; // business_id
+              final oid = int.tryParse(pathSegments[2]) ?? 0; // subject_id
+              final rootId = int.tryParse(pathSegments[3]) ?? 0; // root_id // target_id
               // int subType = int.parse(queryParameters['subType'] ?? '0');
               // int extraIntentId =
               // int.parse(queryParameters['extraIntentId'] ?? '0');

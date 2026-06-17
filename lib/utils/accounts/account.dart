@@ -74,8 +74,12 @@ class LoginAccount extends Account {
   );
 
   @override
-  late final String csrf =
-      cookieJar.domainCookies['bilibili.com']!['/']!['bili_jct']!.cookie.value;
+  late final String csrf = () {
+    final domain = cookieJar.domainCookies['bilibili.com'];
+    final path = domain?['/'];
+    final cookie = path?['bili_jct'];
+    return cookie?.cookie.value ?? '';
+  }();
 
   bool _hasDelete = false;
 
@@ -99,10 +103,12 @@ class LoginAccount extends Account {
     'type': type.map((i) => i.index).toList(),
   };
 
-  late final String _midStr = cookieJar
-      .domainCookies['bilibili.com']!['/']!['DedeUserID']!
-      .cookie
-      .value;
+  late final String _midStr = () {
+    final domain = cookieJar.domainCookies['bilibili.com'];
+    final path = domain?['/'];
+    final cookie = path?['DedeUserID'];
+    return cookie?.cookie.value ?? '';
+  }();
 
   late final Box<LoginAccount> _box = Accounts.account;
 

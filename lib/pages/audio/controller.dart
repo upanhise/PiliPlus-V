@@ -161,7 +161,7 @@ class AudioController extends GetxController
       if (!hasAudioUrl) {
         _queryPlayUrl();
       }
-    });
+    }).catchError((_) {});
     videoPlayerServiceHandler
       ?..onPlay = onPlay
       ..onPause = onPause
@@ -259,7 +259,7 @@ class AudioController extends GetxController
     if (isUgc && enableSponsorBlock) {
       try {
         final bvid = IdUtils.av2bv(oid.toInt());
-        final cid = subId.first.toInt();
+        final cid = subId.isNotEmpty ? subId.first.toInt() : 0;
         querySponsorBlock(bvid: bvid, cid: cid);
       } catch (_) {}
     }
@@ -682,7 +682,7 @@ class AudioController extends GetxController
               if (res) {
                 _videoDetailController = null;
               }
-            });
+            }).catchError((_) {});
             return true;
           }
         }
@@ -716,7 +716,7 @@ class AudioController extends GetxController
         _videoDetailController = null;
         _updateCurrItem(audioItem);
       }
-    });
+    }).catchError((_) {});
   }
 
   void setSpeed(double speed) {
