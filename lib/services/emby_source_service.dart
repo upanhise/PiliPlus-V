@@ -313,16 +313,16 @@ abstract final class EmbySourceService {
       videoCodecid: 7,
       seekParam: 'start',
       seekType: 'second',
-      durl: [
-        Durl(
-          order: 1,
-          length: durationMs,
-          size: size,
-          url: streamUrl,
-          backupUrl: [],
-        ),
-      ],
     );
+    model.durl = [
+      Durl(
+        order: 1,
+        length: durationMs,
+        size: size,
+        url: streamUrl,
+        backupUrl: [],
+      ),
+    ];
     return Success(model);
   }
 

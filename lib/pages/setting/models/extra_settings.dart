@@ -917,6 +917,7 @@ void _showEmbySourceConfigDialog(
                   ),
                 ),
               ],
+            ],
           ),
         ),
         actions: [
@@ -972,6 +973,7 @@ void _showEmbySourceConfigDialog(
                         SettingBoxKey.bangumiEmbyServerUrl,
                         serverUrl,
                       );
+
                       await GStorage.setting.put(
                         SettingBoxKey.bangumiEmbyLibraryId,
                         libraryId,
