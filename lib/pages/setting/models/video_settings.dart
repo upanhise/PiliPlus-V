@@ -177,6 +177,15 @@ List<SettingsModel> get videoSettings => [
     getSubtitle: () => '当前：${Pref.hardwareDecoding}（此项即mpv的--hwdec）',
     onTap: _showHwDecDialog,
   ),
+  NormalModel(
+    title: '播放器进度条样式',
+    leading: const Icon(Icons.linear_scale_outlined),
+    getSubtitle: () {
+      final style = Pref.playerProgressBarStyle;
+      return style == 'androidNative' ? '安卓原生' : '默认';
+    },
+    onTap: _showPlayerProgressBarStyleDialog,
+  ),
 ];
 
 Future<void> _showCDNDialog(BuildContext context, VoidCallback setState) async {
@@ -559,6 +568,28 @@ void _showBufferSizeDialog(BuildContext context, VoidCallback setState) =>
       title: '缓冲大小',
       suffix: 'MB',
     );
+
+Future<void> _showPlayerProgressBarStyleDialog(
+  BuildContext context,
+  VoidCallback setState,
+) async {
+  final res = await showDialog<String>(
+    context: context,
+    builder: (context) => SelectDialog<String>(
+      title: '播放器进度条样式',
+      value: Pref.playerProgressBarStyle,
+      values: const [
+        ('default', '默认'),
+        ('androidNative', '安卓原生'),
+      ],
+    ),
+  );
+  if (res != null && res != Pref.playerProgressBarStyle) {
+    await GStorage.setting.put(SettingBoxKey.playerProgressBarStyle, res);
+    setState();
+    SmartDialog.showToast('已切换为${res == 'androidNative' ? '安卓原生' : '默认'}进度条，重新播放后生效');
+  }
+}
 
 void _showBufferSecDialog(BuildContext context, VoidCallback setState) =>
     _showDecimalDialog(

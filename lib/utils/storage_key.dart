@@ -144,6 +144,7 @@ abstract final class SettingBoxKey {
       fastForBackwardDuration = 'fastForBackwardDuration',
       recordSearchHistory = 'recordSearchHistory',
       showPgcTimeline = 'showPgcTimeline',
+      playerProgressBarStyle = 'playerProgressBarStyle',
       pageTransition = 'pageTransition',
       optTabletNav = 'optTabletNav',
       banWordForDyn = 'banWordForDyn',

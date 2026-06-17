@@ -627,6 +627,9 @@ abstract final class Pref {
   static bool get showPgcTimeline =>
       _setting.get(SettingBoxKey.showPgcTimeline, defaultValue: true);
 
+  static String get playerProgressBarStyle =>
+      _setting.get(SettingBoxKey.playerProgressBarStyle, defaultValue: 'default');
+
   static num get maxCacheSize =>
       _setting.get(SettingBoxKey.maxCacheSize) ?? pow(1024, 3);
 
