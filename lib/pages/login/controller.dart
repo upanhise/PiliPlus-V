@@ -37,7 +37,8 @@ class LoginPageController extends GetxController
   late final RxInt qrCodeLeftTime = 180.obs;
   late final RxString statusQRCode = ''.obs;
 
-  late var selectedCountryCodeId = Login.dialPrefix.first;
+  late var selectedCountryCodeId =
+      Login.dialPrefix.isNotEmpty ? Login.dialPrefix.first : (id: 1, cname: "中国大陆", countryId: 86);
   late String captchaKey = '';
   late final RxInt smsSendCooldown = 0.obs;
   late int smsSendTimestamp = 0;
