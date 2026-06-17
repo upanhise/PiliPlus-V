@@ -437,13 +437,14 @@ class DownloadService extends GetxService {
             );
           }
           if (mediaFileInfo.video.isNotEmpty) {
-            late final first = mediaFileInfo.video.first;
-          entry.pageData
-            ?..width = first.width
-            ..height = first.height;
-          entry.ep
-            ?..width = first.width
-            ..height = first.height;
+            final first = mediaFileInfo.video.first;
+            entry.pageData
+              ?..width = first.width
+              ..height = first.height;
+            entry.ep
+              ?..width = first.width
+              ..height = first.height;
+          }
           _updateBiliDownloadEntryJson(entry);
           break;
         default:

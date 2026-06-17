@@ -184,7 +184,11 @@ abstract final class DownloadHttp {
           userAgent: userAgent,
         );
       } else {
-        final first = response.durl!.first;
+        final durlList = response.durl;
+        if (durlList == null || durlList.isEmpty) {
+          return const Error('视频流地址为空');
+        }
+        final first = durlList.first;
         final List<Type1Segment> segmentList = [
           Type1Segment(
             backupUrls: [],

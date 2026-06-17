@@ -16,6 +16,7 @@ class SysMsgController
 
   @override
   void handleListResponse(List<MsgSysItem> dataList) {
+    if (dataList.isEmpty) return;
     if (cursor == null) {
       msgSysUpdateCursor(dataList.first.cursor);
     }
