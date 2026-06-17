@@ -119,7 +119,7 @@ jobs:
           done
 
       - name: 上传 Artifact (arm64-v8a)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Android_arm64-v8a
           path: |
@@ -128,7 +128,7 @@ jobs:
           if-no-files-found: error
 
       - name: 上传 Artifact (armeabi-v7a)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Android_armeabi-v7a
           path: |
@@ -137,7 +137,7 @@ jobs:
           if-no-files-found: error
 
       - name: 上传 Artifact (x86_64)
-        uses: actions/upload-artifact@v4
+        uses: actions/upload-artifact@v7
         with:
           name: Android_x86_64
           path: |
