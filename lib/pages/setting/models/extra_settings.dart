@@ -160,6 +160,17 @@ List<SettingsModel> get extraSettings => [
       _showEmbySourceConfigDialog(context, setState);
     },
   ),
+  NormalModel(
+    title: '清除番剧手动绑定',
+    subtitle: '移除当前保存的 Emby 番剧绑定缓存',
+    leading: const Icon(Icons.cleaning_services_outlined),
+    onTap: (context, setState) async {
+      await GStorage.setting.delete(SettingBoxKey.bangumiEmbyBindings);
+      EmbySourceService.clearBindingsCache();
+      SmartDialog.showToast('已清除手动绑定缓存');
+      setState();
+    },
+  ),
   const SwitchModel(
     title: '官方权限失败时尝试自定义番剧源',
     subtitle: '大会员不会自动降级；仅在官方权限失败时尝试自定义源接口',

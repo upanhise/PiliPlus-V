@@ -75,15 +75,13 @@ abstract final class BangumiSourceService {
 
   static bool get enableCustomSource => Pref.enableBangumiCustomSource;
 
-  static String get customSourceUrl => Pref.bangumiCustomSourceUrl.trim();
-
   static bool get showBangumiSourceToast => Pref.showBangumiSourceToast;
 
   static bool get tryCustomSourceOnOfficialFailure =>
       Pref.tryBangumiCustomSourceOnOfficialFailure;
 
   static bool get hasCustomSourceConfigured =>
-      enableCustomSource && customSourceUrl.isNotEmpty;
+      enableCustomSource && EmbySourceService.hasServerUrl;
 
   static bool shouldTryFallback({
     required VipState vipState,
@@ -116,28 +114,20 @@ abstract final class BangumiSourceService {
       _log('fallbackPlayUrl disabled by setting');
       return const Error('自定义番剧源未启用');
     }
-    if (customSourceUrl.isEmpty) {
-      _log('fallbackPlayUrl missing custom source url');
-      return const Error('自定义番剧源地址未配置');
+    if (!EmbySourceService.hasServerUrl) {
+      _log('fallbackPlayUrl missing Emby server url');
+      return const Error('未配置 Emby 服务器，请在设置中添加');
     }
 
-    // 优先使用新的 Emby 源服务
-    if (EmbySourceService.hasServerUrl) {
-      return EmbySourceService.fetchPlayUrl(
-        cid: cid,
-        episodeIndex: episodeIndex ?? 1,
-        seriesTitle: seriesTitle,
-        episodeTitle: episodeTitle,
-        bvid: bvid,
-        epId: epId,
-        seasonId: seasonId,
-      );
-    }
-
-    _log(
-      'fallbackPlayUrl placeholder url=$customSourceUrl epId=$epId seasonId=$seasonId cid=$cid bvid=$bvid',
+    return EmbySourceService.fetchPlayUrl(
+      cid: cid,
+      episodeIndex: episodeIndex ?? 1,
+      seriesTitle: seriesTitle,
+      episodeTitle: episodeTitle,
+      bvid: bvid,
+      epId: epId,
+      seasonId: seasonId,
     );
-    return const Error('自定义番剧源配置入口已启用，但实际源接口仍在开发中');
   }
 
   static bool _isOfficialPermissionError(Error error) {

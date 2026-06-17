@@ -96,6 +96,7 @@ abstract final class SettingBoxKey {
       bangumiEmbyUsername = 'bangumiEmbyUsername',
       bangumiEmbyAccessToken = 'bangumiEmbyAccessToken',
       bangumiEmbyUserId = 'bangumiEmbyUserId',
+      bangumiEmbyBindings = 'bangumiEmbyBindings',
       reverseFromFirst = 'reverseFromFirst',
       badCertificateCallback = 'badCertificateCallback',
       continuePlayingPart = 'continuePlayingPart',

@@ -74,7 +74,6 @@ abstract final class EmbySourceHttp {
   }
 
   /// 搜索 Series（电视剧/番剧）。
-  /// 搜索 Series（电视剧/番剧）。
   static Future<LoadingState<List<Map<String, dynamic>>>> searchSeries({
     required String baseUrl,
     required String accessToken,

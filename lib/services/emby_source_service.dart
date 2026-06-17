@@ -15,6 +15,7 @@ abstract final class EmbySourceService {
 
   static String? _cachedAccessToken;
   static String? _cachedUserId;
+  static Map<String, String>? _cachedBindings;
 
   static String get baseUrl => Pref.bangumiEmbyServerUrl.trim();
 
@@ -96,7 +97,7 @@ abstract final class EmbySourceService {
       return const Error('Emby 未登录');
     }
 
-    _log('匹配开始 title=$seriesTitle ep=$episodeIndex');
+    _log('匹配开始 title=$seriesTitle ep=$episodeIndex epTitle=$episodeTitle');
 
     // 1. 用番剧标题精确搜索 Series
     String? seriesId;
@@ -129,15 +130,22 @@ abstract final class EmbySourceService {
     // 4. 手动绑定缓存兜底
     if (seriesId == null && seasonId != null) {
       final cached = _getCachedBinding(seasonId.toString());
-      if (cached != null) seriesId = cached;
+      if (cached != null) {
+        _log('使用手动绑定缓存 seasonId=$seasonId -> seriesId=$cached');
+        seriesId = cached;
+      }
     }
 
     if (seriesId == null) {
       return const Error('未在 Emby 找到对应番剧');
     }
 
-    // 找到对应 Episode
-    episodeId ??= await _findEpisodeIdByIndex(seriesId, episodeIndex);
+    // 找到对应 Episode。优先标题反查，再按集号兜底。
+    episodeId ??= await _findEpisodeId(
+      seriesId: seriesId,
+      expectedIndex: episodeIndex,
+      title: episodeTitle,
+    );
     if (episodeId == null) {
       return Error('未在 Emby 找到第 $episodeIndex 集');
     }
@@ -166,8 +174,10 @@ abstract final class EmbySourceService {
     );
     if (res is Error) return null;
     final items = (res as Success<List<Map<String, dynamic>>>).response;
+    final target = _normalize(title);
     for (final item in items) {
-      if (_normalize(item['Name']) == _normalize(title)) {
+      final name = item['Name'] as String?;
+      if (_normalize(name) == target) {
         return item['Id'] as String?;
       }
     }
@@ -186,7 +196,23 @@ abstract final class EmbySourceService {
     if (res is Error) return null;
     final items = (res as Success<List<Map<String, dynamic>>>).response;
     if (items.isEmpty) return null;
-    return items.first['Id'] as String?;
+    final target = _normalize(title);
+    String? bestId;
+    double bestScore = 0.0;
+    const threshold = 0.6;
+    for (final item in items) {
+      final name = item['Name'] as String? ?? '';
+      final score = _titleSimilarity(_normalize(name), target);
+      if (score > bestScore) {
+        bestScore = score;
+        bestId = item['Id'] as String?;
+      }
+    }
+    if (bestScore < threshold) {
+      _log('模糊匹配最佳分数 $bestScore 低于阈值 $threshold，放弃');
+      return null;
+    }
+    return bestId;
   }
 
   static Future<_EmbyEpisodeMatch?> _searchEpisodeBest(
@@ -199,12 +225,23 @@ abstract final class EmbySourceService {
       userId: userId,
       searchTerm: title,
       libraryId: _libraryId,
-      limit: 20,
+      limit: 30,
     );
     if (res is Error) return null;
     final items = (res as Success<List<Map<String, dynamic>>>).response;
+    _EmbyEpisodeMatch? best;
+    double bestScore = 0.0;
+    const titleThreshold = 0.55;
+    final target = _normalize(title);
     for (final item in items) {
       final idx = _parseIndexNumber(item['IndexNumber']);
+      final itemName = item['Name'] as String? ?? '';
+      final itemSeriesName = item['SeriesName'] as String? ?? '';
+      final score = _max(
+        _titleSimilarity(_normalize(itemName), target),
+        _titleSimilarity(_normalize(itemSeriesName), target),
+      );
+      // 集号一致时优先，否则取标题最像的。
       if (idx != null && idx == expectedIndex) {
         return _EmbyEpisodeMatch(
           id: item['Id'] as String? ?? '',
@@ -213,14 +250,24 @@ abstract final class EmbySourceService {
           indexNumber: idx,
         );
       }
+      if (score > bestScore && score >= titleThreshold) {
+        bestScore = score;
+        best = _EmbyEpisodeMatch(
+          id: item['Id'] as String? ?? '',
+          seriesId: item['SeriesId'] as String? ?? '',
+          seasonId: item['SeasonId'] as String? ?? '',
+          indexNumber: idx ?? expectedIndex,
+        );
+      }
     }
-    return null;
+    return best;
   }
 
-  static Future<String?> _findEpisodeIdByIndex(
-    String seriesId,
-    int episodeIndex,
-  ) async {
+  static Future<String?> _findEpisodeId({
+    required String seriesId,
+    required int expectedIndex,
+    String? title,
+  }) async {
     // 先尝试取 Series 下的 Seasons，再取 Season 下的 Episodes
     final seasonsRes = await EmbySourceHttp.listItems(
       baseUrl: baseUrl,
@@ -237,10 +284,10 @@ abstract final class EmbySourceService {
           .whereType<String>()
           .toList();
     }
-
-    // 如果 Series 下没有 Season，直接把 Series 当 ParentId 查 Episodes
     if (seasonIds.isEmpty) seasonIds = [seriesId];
 
+    String? fallbackByIndex;
+    _EmbyEpisodeMatch? fallbackByTitle;
     for (final seasonId in seasonIds) {
       final epsRes = await EmbySourceHttp.listItems(
         baseUrl: baseUrl,
@@ -255,12 +302,32 @@ abstract final class EmbySourceService {
       final episodes = (epsRes as Success<List<Map<String, dynamic>>>).response;
       for (final ep in episodes) {
         final idx = _parseIndexNumber(ep['IndexNumber']);
-        if (idx == episodeIndex) {
+        final epName = ep['Name'] as String? ?? '';
+        // 集号一致优先
+        if (idx == expectedIndex) {
           return ep['Id'] as String?;
+        }
+        // 标题一致作为次优先
+        if (title != null && title.isNotEmpty) {
+          final score = _titleSimilarity(_normalize(epName), _normalize(title));
+          if (score >= 0.8 &&
+              (fallbackByTitle == null || score > fallbackByTitle.score)) {
+            fallbackByTitle = _EmbyEpisodeMatch(
+              id: ep['Id'] as String? ?? '',
+              seriesId: seriesId,
+              seasonId: seasonId,
+              indexNumber: idx ?? expectedIndex,
+              score: score,
+            );
+          }
+        }
+        // 兜底：记录最后一个按顺序的 episode，避免空结果
+        if (fallbackByIndex == null && idx != null) {
+          fallbackByIndex = ep['Id'] as String?;
         }
       }
     }
-    return null;
+    return fallbackByTitle?.id ?? fallbackByIndex;
   }
 
   static LoadingState<PlayUrlModel> _buildPlayUrlModel(
@@ -287,32 +354,38 @@ abstract final class EmbySourceService {
       streamUrl = source['TranscodingUrl'] as String?;
     }
     if (streamUrl == null || streamUrl.isEmpty) {
+      streamUrl = source['Path'] as String?;
+    }
+    if (streamUrl == null || streamUrl.isEmpty) {
       return const Error('Emby 没有可用的播放地址');
     }
 
-    // 补齐协议与 host
-    if (streamUrl.startsWith('/')) {
-      final uri = Uri.parse(baseUrl);
-      streamUrl = uri.replace(path: streamUrl).toString();
-    }
+    // 合并相对 URL 并追加 api_key 鉴权参数
+    streamUrl = _resolveEmbyUrl(streamUrl);
 
     final runTimeTicks = source['RunTimeTicks'];
     final durationMs = runTimeTicks is int ? runTimeTicks ~/ 10000 : 0;
     final size = source['Size'] is int ? source['Size'] as int : 0;
     final container = source['Container'] as String? ?? 'mp4';
 
+    // 对 HLS/TS 容器统一返回 mp4 容器名，避免播放器层解析异常。
+    final format = _isHlsContainer(container) ? 'mp4' : container;
+
+    // Emby fallback 为单一原画流，不暴露画质切换；播放器进度恢复由 defaultST 控制，
+    // 不通过 durl seek 参数透传给 Emby URL。
+    const quality = 80;
     final model = PlayUrlModel(
       from: 'emby',
       result: 'suee',
-      quality: 80,
-      format: container == 'm3u8' || container == 'ts' ? 'mp4' : container,
+      quality: quality,
+      format: format,
       timeLength: durationMs,
-      acceptFormat: container == 'm3u8' || container == 'ts' ? 'mp4' : container,
+      acceptFormat: format,
       acceptDesc: const ['原画'],
-      acceptQuality: const [80],
-      videoCodecid: 7,
-      seekParam: 'start',
-      seekType: 'second',
+      acceptQuality: const [quality],
+      videoCodecid: 0,
+      seekParam: '',
+      seekType: '',
     );
     model.durl = [
       Durl(
@@ -320,17 +393,36 @@ abstract final class EmbySourceService {
         length: durationMs,
         size: size,
         url: streamUrl,
-        backupUrl: [],
+        backupUrl: const [],
       ),
     ];
     return Success(model);
   }
 
+  static bool _isHlsContainer(String container) {
+    final c = container.toLowerCase();
+    return c == 'm3u8' || c == 'ts' || c == 'hls';
+  }
+
+  static String _resolveEmbyUrl(String rawUrl) {
+    final base = Uri.parse(baseUrl);
+    final resolved = rawUrl.startsWith('http://') || rawUrl.startsWith('https://')
+        ? Uri.parse(rawUrl)
+        : base.resolve(rawUrl);
+    // Emby 与 Jellyfin 通用 api_key 鉴权参数
+    return resolved.replace(
+      queryParameters: {
+        ...resolved.queryParameters,
+        'api_key': accessToken,
+      },
+    ).toString();
+  }
+
   static String _directStreamUrl(String itemId) {
-    final uri = Uri.parse(baseUrl);
-    return uri
+    final base = Uri.parse(baseUrl);
+    return base
         .replace(
-          path: '${uri.path.replaceAll(RegExp(r'/+$'), '')}/emby/Videos/$itemId/stream',
+          path: '${base.path.replaceAll(RegExp(r'/+$'), '')}/emby/Videos/$itemId/stream',
           queryParameters: {
             'static': 'true',
             'MediaSourceId': itemId,
@@ -345,21 +437,27 @@ abstract final class EmbySourceService {
   }
 
   static List<String> _fuzzyTitles(String title) {
-    final normalized = _normalize(title);
+    String normalized = _normalize(title);
     final variants = <String>{normalized};
 
-    final suffixes = [
-      ' 第二季', ' 第2季', ' 2期', ' 第二部', ' part 2',
-      ' 第三季', ' 第3季', ' 3期', ' 第三部', ' part 3',
-      ' 第四季', ' 第4季', ' 4期', ' part 4',
-      ' 第五季', ' 第5季', ' 5期', ' part 5',
-      '（僅限台灣地區）', '（僅限港澳地區）', '（僅限中國大陸）',
-      ' 普通话版', ' 国语版', ' 日语版', ' 中配版', ' 繁中版', ' 简中版',
-    ];
-    for (final suffix in suffixes) {
-      if (normalized.toLowerCase().contains(suffix)) {
-        variants.add(normalized.replaceFirst(suffix, '').trim());
-      }
+    // 去掉常见地域/语言/字幕标注
+    normalized = normalized
+        .replaceAllMapped(
+          RegExp(r'\s*[(（【［\[][^)）】］\]]*(僅限|仅限|普通话|国语|日语|中配|繁中|简中|台灣|港澳|大陆|地区)[^)）】］\]]*[)）】］\]]?'),
+          (m) => '',
+        )
+        .trim();
+    if (normalized.isNotEmpty) variants.add(normalized);
+
+    // 替换季/期/部/Part 数字变体为不带后缀的标题
+    final seasonless = normalized
+        .replaceAllMapped(
+          RegExp(r'[\s\-_]?(第?\s*\d+\s*[季期部]|[Ss]eason\s*\d+|\b\d+[Nn][Dd]\s*[Ss]eason|\b[Pp]art\s*\d+|\b\d+\s*期)$'),
+          (m) => '',
+        )
+        .trim();
+    if (seasonless.isNotEmpty && seasonless != normalized) {
+      variants.add(seasonless);
     }
 
     // 去掉冒号/全角冒号副标题
@@ -367,8 +465,12 @@ abstract final class EmbySourceService {
     if (colonIdx > 0) {
       variants.add(normalized.substring(0, colonIdx).trim());
     }
+    final colonIdx2 = seasonless.indexOf(RegExp(r'[:：]'));
+    if (colonIdx2 > 0 && colonIdx2 != colonIdx) {
+      variants.add(seasonless.substring(0, colonIdx2).trim());
+    }
 
-    return variants.toList();
+    return variants.where((e) => e.isNotEmpty).toList();
   }
 
   static String _normalize(String? value) {
@@ -386,16 +488,86 @@ abstract final class EmbySourceService {
     return null;
   }
 
+  static double _titleSimilarity(String a, String b) {
+    if (a.isEmpty || b.isEmpty) return 0.0;
+    if (a == b) return 1.0;
+    if (a.contains(b) || b.contains(a)) return 0.9;
+    final dist = _levenshtein(a, b);
+    final maxLen = a.length > b.length ? a.length : b.length;
+    if (maxLen == 0) return 1.0;
+    return 1.0 - dist / maxLen;
+  }
+
+  static int _levenshtein(String a, String b) {
+    if (a.isEmpty) return b.length;
+    if (b.isEmpty) return a.length;
+    final previous = List<int>.generate(b.length + 1, (i) => i);
+    for (var i = 0; i < a.length; i++) {
+      final current = List<int>.filled(b.length + 1, 0);
+      current[0] = i + 1;
+      for (var j = 0; j < b.length; j++) {
+        final cost = a.codeUnitAt(i) == b.codeUnitAt(j) ? 0 : 1;
+        current[j + 1] = _min(
+          current[j] + 1,
+          previous[j + 1] + 1,
+          previous[j] + cost,
+        );
+      }
+      for (var j = 0; j <= b.length; j++) {
+        previous[j] = current[j];
+      }
+    }
+    return previous[b.length];
+  }
+
+  static int _min(int a, int b, int c) => (a < b ? a : b) < c ? (a < b ? a : b) : c;
+
+  static double _max(double a, double b) => a > b ? a : b;
+
   static String? _getCachedBinding(String seasonId) {
-    final raw = GStorage.setting.get(
-      'bangumiEmbyBinding_$seasonId',
-      defaultValue: '',
-    ) as String;
-    return raw.isEmpty ? null : raw;
+    final bindings = _loadBindings();
+    return bindings[seasonId];
   }
 
   static Future<void> cacheBinding(String seasonId, String embySeriesId) async {
-    await GStorage.setting.put('bangumiEmbyBinding_$seasonId', embySeriesId);
+    final bindings = _loadBindings();
+    bindings[seasonId] = embySeriesId;
+    await _saveBindings(bindings);
+  }
+
+  static Future<void> clearBinding(String seasonId) async {
+    final bindings = _loadBindings();
+    if (bindings.remove(seasonId) != null) {
+      await _saveBindings(bindings);
+    }
+  }
+
+  /// 供设置页清除缓存后让内存缓存失效。
+  static void clearBindingsCache() {
+    _cachedBindings = null;
+  }
+
+  static Map<String, String> _loadBindings() {
+    if (_cachedBindings != null) return _cachedBindings!;
+    final raw = GStorage.setting.get(
+      SettingBoxKey.bangumiEmbyBindings,
+      defaultValue: <String, String>{},
+    );
+    if (raw is Map) {
+      _cachedBindings = Map<String, String>.fromEntries(
+        raw.entries
+            .where((e) => e.key is String && e.value is String)
+            .map((e) => MapEntry(e.key as String, e.value as String)),
+      );
+    } else {
+      _cachedBindings = <String, String>{};
+    }
+    return _cachedBindings!;
+  }
+
+  static Future<void> _saveBindings(Map<String, String> bindings) async {
+    _cachedBindings = bindings;
+    await GStorage.setting.put(SettingBoxKey.bangumiEmbyBindings, bindings);
   }
 
   static void _log(String message) {
@@ -408,11 +580,13 @@ class _EmbyEpisodeMatch {
   final String seriesId;
   final String seasonId;
   final int indexNumber;
+  final double score;
 
   _EmbyEpisodeMatch({
     required this.id,
     required this.seriesId,
     required this.seasonId,
     required this.indexNumber,
+    this.score = 0.0,
   });
 }
