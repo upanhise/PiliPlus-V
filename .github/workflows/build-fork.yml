@@ -144,3 +144,37 @@ jobs:
             PiliPlus_android_*_x86_64.apk
             APK_CHANGELOG_MINIS.md
           if-no-files-found: error
+
+      - name: Create GitHub Release
+        if: github.ref == 'refs/heads/main' && github.event_name == 'push'
+        env:
+          GH_TOKEN: ${{ github.token }}
+        shell: bash
+        run: |
+          msg="${{ github.event.head_commit.message }}"
+          tag=$(echo "$msg" | sed -nE 's/.*for (v[0-9]+\.[0-9]+\.[0-9]+(\.[0-9]+)?-minis\.[0-9]+).*/\1/p')
+
+          if [ -z "$tag" ]; then
+            tag="v${{ env.artifact_version }}"
+          fi
+
+          echo "Release tag: $tag"
+
+          if gh release view "$tag" --repo "${{ github.repository }}" > /dev/null 2>&1; then
+            echo "Release $tag already exists. Deleting and recreating..."
+            gh release delete "$tag" --repo "${{ github.repository }}" --yes
+            git push --delete origin "$tag" || true
+          fi
+
+          if git rev-parse "$tag" >/dev/null 2>&1; then
+            git tag -d "$tag" || true
+          fi
+
+          git tag "$tag" "${{ github.sha }}"
+          git push origin "$tag"
+
+          gh release create "$tag" \
+            --title "$tag" \
+            --notes-file APK_CHANGELOG_MINIS.md \
+            PiliPlus_android_*.apk
+          echo "Release $tag created successfully."
