@@ -70,8 +70,18 @@ abstract final class BangumiSourceService {
     }
   }
 
-  static BangumiSourcePolicy resolveInitialPolicy() =>
-      BangumiSourcePolicy.official;
+  static BangumiSourcePolicy resolveInitialPolicy({
+    required VipState vipState,
+  }) {
+    // 非会员用户若开启偏好，可直接走自定义源，跳过 B站官方试看。
+    if (vipState != VipState.vip &&
+        preferCustomSourceForNonVip &&
+        hasCustomSourceConfigured) {
+      _log('prefer custom source for non-vip');
+      return BangumiSourcePolicy.fallback;
+    }
+    return BangumiSourcePolicy.official;
+  }
 
   static bool get enableCustomSource => Pref.enableBangumiCustomSource;
 
@@ -79,6 +89,9 @@ abstract final class BangumiSourceService {
 
   static bool get tryCustomSourceOnOfficialFailure =>
       Pref.tryBangumiCustomSourceOnOfficialFailure;
+
+  static bool get preferCustomSourceForNonVip =>
+      Pref.preferCustomSourceForNonVip;
 
   static bool get hasCustomSourceConfigured =>
       enableCustomSource && EmbySourceService.hasServerUrl;

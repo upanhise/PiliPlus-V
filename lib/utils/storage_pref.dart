@@ -465,6 +465,11 @@ abstract final class Pref {
     defaultValue: true,
   );
 
+  static bool get preferCustomSourceForNonVip => _setting.get(
+    SettingBoxKey.preferCustomSourceForNonVip,
+    defaultValue: true,
+  );
+
   static String get bangumiEmbyServerUrl =>
       _setting.get(SettingBoxKey.bangumiEmbyServerUrl, defaultValue: '');
 

@@ -900,7 +900,7 @@ class VideoDetailController extends GetxController
         ? BangumiSourceService.vipState
         : VipState.unknown;
     final selectedPolicy = isBangumiPlayback
-        ? BangumiSourceService.resolveInitialPolicy()
+        ? BangumiSourceService.resolveInitialPolicy(vipState: vipState)
         : BangumiSourcePolicy.official;
     if (isBangumiPlayback) {
       BangumiSourceService.logDecision(
@@ -913,35 +913,53 @@ class VideoDetailController extends GetxController
       );
     }
 
-    LoadingState<PlayUrlModel> result = await VideoHttp.videoUrl(
-      cid: cid.value,
-      bvid: bvid,
-      epid: epId,
-      seasonId: seasonId,
-      tryLook: plPlayerController.tryLook,
-      videoType: actualVideoType,
-      language: currLang.value,
-      voiceBalance: plPlayerController.enableAudioNormalization,
-    );
+    LoadingState<PlayUrlModel> result;
     bool attemptedFallback = false;
 
-    if (isBangumiPlayback) {
-      BangumiSourceService.logOfficialResult(result);
-      if (BangumiSourceService.shouldTryFallback(
-        vipState: vipState,
-        officialResult: result,
-      )) {
-        attemptedFallback = true;
-        result = await BangumiSourceService.fallbackPlayUrl(
-          cid: cid.value,
-          bvid: bvid,
-          epId: epId,
-          seasonId: seasonId,
-          seriesTitle: _bangumiSeriesTitle,
-          episodeTitle: _bangumiEpisodeTitle,
-          episodeIndex: _bangumiEpisodeIndex,
-        );
-        BangumiSourceService.logFallbackResult(result);
+    if (isBangumiPlayback && selectedPolicy == BangumiSourcePolicy.fallback) {
+      // 非会员优先自定义源：跳过官方请求，直接 fallback。
+      attemptedFallback = true;
+      debugPrint('[BangumiPlay] skip official source for preferred fallback policy');
+      result = await BangumiSourceService.fallbackPlayUrl(
+        cid: cid.value,
+        bvid: bvid,
+        epId: epId,
+        seasonId: seasonId,
+        seriesTitle: _bangumiSeriesTitle,
+        episodeTitle: _bangumiEpisodeTitle,
+        episodeIndex: _bangumiEpisodeIndex,
+      );
+      BangumiSourceService.logFallbackResult(result);
+    } else {
+      result = await VideoHttp.videoUrl(
+        cid: cid.value,
+        bvid: bvid,
+        epid: epId,
+        seasonId: seasonId,
+        tryLook: plPlayerController.tryLook,
+        videoType: actualVideoType,
+        language: currLang.value,
+        voiceBalance: plPlayerController.enableAudioNormalization,
+      );
+
+      if (isBangumiPlayback) {
+        BangumiSourceService.logOfficialResult(result);
+        if (BangumiSourceService.shouldTryFallback(
+          vipState: vipState,
+          officialResult: result,
+        )) {
+          attemptedFallback = true;
+          result = await BangumiSourceService.fallbackPlayUrl(
+            cid: cid.value,
+            bvid: bvid,
+            epId: epId,
+            seasonId: seasonId,
+            seriesTitle: _bangumiSeriesTitle,
+            episodeTitle: _bangumiEpisodeTitle,
+            episodeIndex: _bangumiEpisodeIndex,
+          );
+          BangumiSourceService.logFallbackResult(result);
+        }
       }
     }
 
