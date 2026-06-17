@@ -1,7 +1,9 @@
 import 'dart:async';
 import 'dart:convert';
+import 'dart:io';
 
 import 'package:PiliPlus/common/constants.dart';
+import 'package:path_provider/path_provider.dart';
 import 'package:PiliPlus/common/widgets/button/icon_button.dart';
 import 'package:PiliPlus/common/widgets/loading_widget/loading_widget.dart';
 import 'package:PiliPlus/services/logger.dart';
@@ -88,6 +90,40 @@ class _LogsPageState extends State<LogsPage> {
     }
   }
 
+  Future<void> _exportLogs() async {
+    try {
+      final logsPath = await LoggerUtils.getLogsPath();
+      final dir = await getApplicationDocumentsDirectory();
+      final exportPath = '${dir.path}/pili_logs_export_${DateTime.now().millisecondsSinceEpoch}.txt';
+      final content = StringBuffer();
+      if (_deviceInfo != null) {
+        content.writeln('DEVICE: ${_deviceInfo!.item}');
+        content.writeln('---');
+      }
+      final lines = await logsPath.readAsLines();
+      for (final line in lines.reversed) {
+        try {
+          final report = Report.fromJson(jsonDecode(line));
+          content.writeln('[${report.dateTime}] ${report.error}');
+          if (report.stackTrace != null) {
+            content.writeln(report.stackTrace);
+          }
+        } catch (_) {
+          content.writeln(line);
+        }
+        content.writeln('---');
+      }
+      await File(exportPath).writeAsString(content.toString());
+      if (mounted) {
+        SmartDialog.showToast('日志已导出到: $exportPath');
+      }
+    } catch (e) {
+      if (mounted) {
+        SmartDialog.showToast('导出失败: $e');
+      }
+    }
+  }
+
   Future<void> clearLogs() async {
     if (await LoggerUtils.clearLogs()) {
       if (mounted) {
@@ -143,6 +179,10 @@ class _LogsPageState extends State<LogsPage> {
                 onTap: () =>
                     PageUtils.launchURL('${Constants.sourceCodeUrl}/issues'),
                 child: const Text('错误反馈'),
+              ),
+              PopupMenuItem(
+                onTap: _exportLogs,
+                child: const Text('导出日志'),
               ),
               PopupMenuItem(
                 onTap: clearLogs,

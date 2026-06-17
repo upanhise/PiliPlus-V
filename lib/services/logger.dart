@@ -8,12 +8,13 @@ import 'package:logger/logger.dart';
 import 'package:path/path.dart' as p;
 import 'package:path_provider/path_provider.dart';
 
+/// release 模式下至少保留 info 级别日志，便于线上问题排查。
 final logger = Logger(
   filter: ProductionFilter(),
   printer: PrettyLogPrinter(
     dateTimeFormat: PrettyLogPrinter.toEncodableFallback,
   ),
-  level: kDebugMode ? .trace : .warning,
+  level: kDebugMode ? .trace : .info,
 );
 
 abstract final class LoggerUtils {

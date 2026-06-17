@@ -4,9 +4,9 @@ import 'package:PiliPlus/models/common/bangumi_source_policy.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
 import 'package:PiliPlus/services/account_service.dart';
 import 'package:PiliPlus/services/emby_source_service.dart';
+import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
 import 'package:get/get.dart';
 
 abstract final class BangumiSourceService {
@@ -188,8 +188,6 @@ abstract final class BangumiSourceService {
   }
 
   static void _log(String message) {
-    if (kDebugMode) {
-      debugPrint('$_tag $message');
-    }
+    logger.i('$_tag $message');
   }
 }

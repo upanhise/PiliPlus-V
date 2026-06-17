@@ -1,10 +1,11 @@
 import 'package:PiliPlus/http/emby_source.dart';
 import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/models/video/play/url.dart';
+import 'package:PiliPlus/services/logger.dart';
 import 'package:PiliPlus/utils/storage.dart';
 import 'package:PiliPlus/utils/storage_key.dart';
 import 'package:PiliPlus/utils/storage_pref.dart';
-import 'package:flutter/foundation.dart' show kDebugMode, debugPrint;
+import 'package:flutter/foundation.dart' show kDebugMode;
 
 /// Emby 自定义番剧源服务
 ///
@@ -101,25 +102,33 @@ abstract final class EmbySourceService {
 
     // 1. 用番剧标题精确搜索 Series
     String? seriesId;
+    _log('步骤1：精确搜索 seriesTitle=$seriesTitle');
     if (seriesTitle != null && seriesTitle.isNotEmpty) {
       final exact = await _searchSeriesExact(seriesTitle);
       if (exact != null) seriesId = exact;
 
       // 2. 清洗后模糊搜索
       if (seriesId == null) {
-        for (final t in _fuzzyTitles(seriesTitle)) {
+        final fuzzyList = _fuzzyTitles(seriesTitle);
+        _log('步骤2：模糊搜索 variants=$fuzzyList');
+        for (final t in fuzzyList) {
           final fuzzy = await _searchSeriesBest(t);
           if (fuzzy != null) {
             seriesId = fuzzy;
+            _log('模糊命中 seriesId=$seriesId variant=$t');
             break;
           }
         }
+      }
+      if (seriesId != null) {
+        _log('精确命中 seriesId=$seriesId');
       }
     }
 
     // 3. 用集标题反查 Episode
     String? episodeId;
     if (seriesId == null && episodeTitle != null && episodeTitle.isNotEmpty) {
+      _log('步骤3：按集标题反查 episodeTitle=$episodeTitle');
       final ep = await _searchEpisodeBest(episodeTitle, episodeIndex);
       if (ep != null) {
         seriesId = ep.seriesId;
@@ -130,6 +139,7 @@ abstract final class EmbySourceService {
     // 4. 手动绑定缓存兜底
     if (seriesId == null && seasonId != null) {
       final cached = _getCachedBinding(seasonId.toString());
+      _log('步骤4：手动绑定缓存 cached=$cached');
       if (cached != null) {
         _log('使用手动绑定缓存 seasonId=$seasonId -> seriesId=$cached');
         seriesId = cached;
@@ -137,18 +147,22 @@ abstract final class EmbySourceService {
     }
 
     if (seriesId == null) {
+      _log('匹配失败：未在 Emby 找到对应番剧');
       return const Error('未在 Emby 找到对应番剧');
     }
 
     // 找到对应 Episode。优先标题反查，再按集号兜底。
+    _log('步骤5：查找集 expectedIndex=$episodeIndex seriesId=$seriesId');
     episodeId ??= await _findEpisodeId(
       seriesId: seriesId,
       expectedIndex: episodeIndex,
       title: episodeTitle,
     );
     if (episodeId == null) {
+      _log('匹配失败：未在 Emby 找到第 $episodeIndex 集');
       return Error('未在 Emby 找到第 $episodeIndex 集');
     }
+    _log('匹配成功 episodeId=$episodeId');
 
     // 取 PlaybackInfo
     final playbackRes = await EmbySourceHttp.getPlaybackInfo(
@@ -359,6 +373,7 @@ abstract final class EmbySourceService {
     if (streamUrl == null || streamUrl.isEmpty) {
       return const Error('Emby 没有可用的播放地址');
     }
+    _log('播放地址 streamUrl=$streamUrl container=$container');
 
     // 合并相对 URL 并追加 api_key 鉴权参数
     streamUrl = _resolveEmbyUrl(streamUrl);
@@ -571,7 +586,7 @@ abstract final class EmbySourceService {
   }
 
   static void _log(String message) {
-    if (kDebugMode) debugPrint('$_tag $message');
+    logger.i('$_tag $message');
   }
 }
 

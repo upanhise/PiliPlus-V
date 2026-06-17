@@ -2,6 +2,7 @@ import 'dart:convert' show jsonEncode;
 
 import 'package:PiliPlus/http/init.dart';
 import 'package:PiliPlus/http/loading_state.dart';
+import 'package:PiliPlus/services/logger.dart';
 import 'package:dio/dio.dart';
 
 /// Emby 自定义番剧源 API 封装
@@ -48,6 +49,7 @@ abstract final class EmbySourceHttp {
     String? deviceId,
   }) async {
     final url = _apiUrl(baseUrl, 'emby/Users/AuthenticateByName', null);
+    logger.i('[EmbyHttp] Auth url=$url user=$username');
     try {
       final res = await Request().post(
         url,
@@ -59,16 +61,20 @@ abstract final class EmbySourceHttp {
       );
       final data = res.data;
       if (data is! Map<String, dynamic>) {
+        logger.i('[EmbyHttp] Auth bad response: ${res.data.runtimeType}');
         return const Error('Emby 登录返回格式异常');
       }
       if (data['AccessToken'] is! String ||
           (data['AccessToken'] as String).isEmpty) {
         return Error(data['errorMessage']?.toString() ?? 'Emby 登录失败');
       }
+      logger.i('[EmbyHttp] Auth success userId=${data['User']?['Id']}');
       return Success(data);
     } on DioException catch (e) {
+      logger.i('[EmbyHttp] Auth DioException: ${e.message} / ${e.response?.data}');
       return Error('Emby 登录请求失败: ${e.message}');
     } catch (e) {
+      logger.i('[EmbyHttp] Auth exception: $e');
       return Error('Emby 登录异常: $e');
     }
   }
@@ -158,10 +164,12 @@ abstract final class EmbySourceHttp {
     return _getItems(url, accessToken);
   }
 
+  /// 通用 GET 请求，负责记录关键日志。
   static Future<LoadingState<List<Map<String, dynamic>>>> _getItems(
     String url,
     String accessToken,
   ) async {
+    logger.i('[EmbyHttp] GET $url');
     try {
       final res = await Request().get(
         url,
@@ -172,18 +180,23 @@ abstract final class EmbySourceHttp {
       );
       final data = res.data;
       if (data is! Map<String, dynamic>) {
+        logger.i('[EmbyHttp] GET bad response: ${res.data.runtimeType}');
         return const Error('Emby 返回格式异常');
       }
       final items = data['Items'];
       if (items is! List) {
+        logger.i('[EmbyHttp] GET missing Items, response keys=${data.keys.toList()}');
         return const Error('Emby 返回缺少 Items');
       }
+      logger.i('[EmbyHttp] GET ok items=${items.length}');
       return Success(
         items.whereType<Map<String, dynamic>>().toList(),
       );
     } on DioException catch (e) {
+      logger.i('[EmbyHttp] GET DioException: ${e.message} / ${e.response?.data}');
       return Error('Emby 请求失败: ${e.message}');
     } catch (e) {
+      logger.i('[EmbyHttp] GET exception: $e');
       return Error('Emby 请求异常: $e');
     }
   }
@@ -248,10 +261,13 @@ abstract final class EmbySourceHttp {
       if (errorCode != null) {
         return Error(data['ErrorMessage']?.toString() ?? 'Emby 播放信息错误');
       }
+        logger.i('[EmbyHttp] PlaybackInfo ok sources=${(data['MediaSources'] as List?)?.length ?? 0}');
       return Success(data);
     } on DioException catch (e) {
+      logger.i('[EmbyHttp] PlaybackInfo DioException: ${e.message} / ${e.response?.data}');
       return Error('Emby PlaybackInfo 请求失败: ${e.message}');
     } catch (e) {
+      logger.i('[EmbyHttp] PlaybackInfo exception: $e');
       return Error('Emby PlaybackInfo 异常: $e');
     }
   }
