@@ -207,18 +207,18 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
                   ),
                   if (introController.showArgueMsg &&
                       videoDetail.argueInfo?.argueMsg?.isNotEmpty == true) ...[
-                    const SizedBox(height: 2),
+                    const SizedBox(height: 4),
                     Text.rich(
                       TextSpan(
                         children: [
                           WidgetSpan(
                             alignment: PlaceholderAlignment.middle,
                             child: Padding(
-                              padding: const .only(right: 2),
+                              padding: const .only(right: 4),
                               child: Icon(
-                                size: 13,
+                                size: 16,
                                 Icons.error_outline,
-                                color: theme.colorScheme.outline,
+                                color: theme.colorScheme.error,
                               ),
                             ),
                           ),
@@ -228,8 +228,9 @@ class _UgcIntroPanelState extends State<UgcIntroPanel> {
                         ],
                       ),
                       style: TextStyle(
-                        fontSize: 12,
-                        color: theme.colorScheme.outline,
+                        fontSize: 14,
+                        fontWeight: FontWeight.w700,
+                        color: theme.colorScheme.error,
                       ),
                     ),
                   ],

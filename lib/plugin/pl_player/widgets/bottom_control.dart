@@ -6,6 +6,7 @@ import 'package:PiliPlus/plugin/pl_player/view/view.dart';
 import 'package:PiliPlus/utils/extension/theme_ext.dart';
 import 'package:PiliPlus/utils/feed_back.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
+import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
 
@@ -47,6 +48,41 @@ class BottomControl extends StatelessWidget {
       ..seekTo(Duration(seconds: duration.inSeconds), isSeek: false);
   }
 
+  Widget _buildAndroidNativeProgressBar({
+    required BuildContext context,
+    required int value,
+    required int max,
+    required Color primary,
+  }) {
+    final double progress = max > 0 ? value.clamp(0, max).toDouble() : 0;
+    final double total = max > 0 ? max.toDouble() : 1;
+    return SliderTheme(
+      data: SliderTheme.of(context).copyWith(
+        trackHeight: 3.5,
+        activeTrackColor: primary,
+        inactiveTrackColor: const Color(0x33FFFFFF),
+        thumbColor: primary,
+        overlayColor: primary.withAlpha(80),
+        overlayShape: const RoundSliderOverlayShape(overlayRadius: 16),
+        thumbShape: const RoundSliderThumbShape(enabledThumbRadius: 7),
+      ),
+      child: Slider(
+        value: progress,
+        max: total,
+        onChanged: (v) {
+          controller.onUpdatedSliderProgress(Duration(seconds: v.toInt()));
+        },
+        onChangeStart: (_) {
+          feedBack();
+          controller.onChangedSliderStart(Duration(seconds: value));
+        },
+        onChangeEnd: (v) {
+          onSeek(Duration(seconds: v.toInt()));
+        },
+      ),
+    );
+  }
+
   @override
   Widget build(BuildContext context) {
     final colorScheme = ColorScheme.of(context);
@@ -73,6 +109,15 @@ class BottomControl extends StatelessWidget {
                     Obx(() {
                       final int value = controller.sliderPositionSeconds.value;
                       final int max = controller.duration.value.inSeconds;
+                      final style = Pref.playerProgressBarStyle;
+                      if (style == 'androidNative') {
+                        return _buildAndroidNativeProgressBar(
+                          context: context,
+                          value: value,
+                          max: max,
+                          primary: primary,
+                        );
+                      }
                       return ProgressBar(
                         progress: Duration(seconds: value),
                         buffered: Duration(

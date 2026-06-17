@@ -279,7 +279,7 @@ abstract final class VideoHttp {
   static String _parseVideoErr(int? code, String? msg) {
     return switch (code) {
       -404 => '视频不存在或已被删除',
-      87008 => '当前视频可能是专属视频，可能需包月充电观看($msg})',
+      87008 => '当前视频可能是专属视频，可能需包月充电观看($msg)',
       _ => '错误($code): $msg',
     };
   }

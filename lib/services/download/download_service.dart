@@ -100,7 +100,11 @@ class DownloadService extends GetxService {
             } else {
               waitDownloadQueue.add(entry..status = DownloadStatus.wait);
             }
-          } catch (_) {}
+          } catch (e, stackTrace) {
+            if (kDebugMode) {
+              debugPrint('[DownloadRead] 解析 $entryFile 失败: $e\n$stackTrace');
+            }
+          }
         }
       }
     }
@@ -114,7 +118,11 @@ class DownloadService extends GetxService {
     ugc.EpisodeItem? videoArc,
     VideoQuality videoQuality,
   ) {
-    final cid = page.cid!;
+    final cid = page.cid;
+    if (cid == null) {
+      SmartDialog.showToast('无效的分P，无法下载');
+      return;
+    }
     if (downloadList.indexWhere((e) => e.cid == cid) != -1) {
       return;
     }
@@ -174,7 +182,11 @@ class DownloadService extends GetxService {
     pgc.EpisodeItem episode,
     VideoQuality quality,
   ) {
-    final cid = episode.cid!;
+    final cid = episode.cid;
+    if (cid == null) {
+      SmartDialog.showToast('番剧分P数据异常，无法下载');
+      return;
+    }
     if (downloadList.indexWhere((e) => e.cid == cid) != -1) {
       return;
     }

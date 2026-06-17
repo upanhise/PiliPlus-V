@@ -8,7 +8,7 @@ plugins {
 }
 
 android {
-    namespace = "com.example.piliplus"
+    namespace = "com.upanhise.piliplusv"
     compileSdk = flutter.compileSdkVersion
     ndkVersion = flutter.ndkVersion
 
@@ -18,7 +18,7 @@ android {
     }
 
     defaultConfig {
-        applicationId = "com.example.piliplus"
+        applicationId = "com.upanhise.piliplusv"
         minSdk = flutter.minSdkVersion
         targetSdk = flutter.targetSdkVersion
         versionCode = flutter.versionCode
@@ -45,9 +45,7 @@ android {
     }
 
     buildFeatures {
-        if (project.hasProperty("dev")) {
-            resValues = true
-        }
+        resValues = true
     }
 
     buildTypes {

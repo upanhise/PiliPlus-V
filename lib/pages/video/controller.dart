@@ -13,6 +13,7 @@ import 'package:PiliPlus/http/loading_state.dart';
 import 'package:PiliPlus/http/user.dart';
 import 'package:PiliPlus/http/video.dart';
 import 'package:PiliPlus/models/common/account_type.dart';
+import 'package:PiliPlus/models/common/bangumi_source_policy.dart';
 import 'package:PiliPlus/models/common/sponsor_block/action_type.dart';
 import 'package:PiliPlus/models/common/sponsor_block/post_segment_model.dart';
 import 'package:PiliPlus/models/common/sponsor_block/segment_model.dart';
@@ -49,6 +50,7 @@ import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/plugin/pl_player/models/data_source.dart';
 import 'package:PiliPlus/plugin/pl_player/models/heart_beat_type.dart';
 import 'package:PiliPlus/plugin/pl_player/models/play_status.dart';
+import 'package:PiliPlus/services/bangumi_source_service.dart';
 import 'package:PiliPlus/services/download/download_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/connectivity_utils.dart';
@@ -155,6 +157,41 @@ class VideoDetailController extends GetxController
   bool get showRelatedVideo =>
       isFileSource ? false : plPlayerController.showRelatedVideo;
 
+  /// 当前番剧总标题（用于 Emby 自定义源匹配）
+  String? get _bangumiSeriesTitle {
+    if (isUgc) return null;
+    try {
+      return Get.find<PgcIntroController>(tag: heroTag).pgcItem.title;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 当前剧集标题（用于 Emby 自定义源反查）
+  String? get _bangumiEpisodeTitle {
+    if (isUgc) return null;
+    try {
+      final episodes = Get.find<PgcIntroController>(tag: heroTag).pgcItem.episodes;
+      final ep = episodes?.firstWhereOrNull((e) => e.cid == cid.value || e.epId == epId);
+      return ep?.longTitle ?? ep?.title;
+    } catch (_) {
+      return null;
+    }
+  }
+
+  /// 当前集号（从 1 开始），用于 Emby IndexNumber 匹配
+  int? get _bangumiEpisodeIndex {
+    if (isUgc) return null;
+    try {
+      final episodes = Get.find<PgcIntroController>(tag: heroTag).pgcItem.episodes;
+      if (episodes == null || episodes.isEmpty) return null;
+      final index = episodes.indexWhere((e) => e.cid == cid.value || e.epId == epId);
+      return index >= 0 ? index + 1 : null;
+    } catch (_) {
+      return null;
+    }
+  }
+
   ScrollController? introScrollCtr;
   ScrollController get effectiveIntroScrollCtr =>
       introScrollCtr ??= ScrollController();
@@ -163,6 +200,8 @@ class VideoDetailController extends GetxController
   late final RxInt seasonIndex = 0.obs;
 
   PlayerStatus? playerStatus;
+
+  BangumiSourcePolicy? _lastBangumiSourcePolicy;
 
   late final scrollKey = GlobalKey<ExtendedNestedScrollViewState>();
   late final RxBool isVertical;
@@ -816,6 +855,15 @@ class VideoDetailController extends GetxController
 
   Volume? volume;
 
+  void _showBangumiSourceToast(BangumiSourcePolicy policy) {
+    final previousPolicy = _lastBangumiSourcePolicy;
+    _lastBangumiSourcePolicy = policy;
+    if (previousPolicy == null || previousPolicy == policy) {
+      return;
+    }
+    SmartDialog.showToast('已切换至${policy.displayName}');
+  }
+
   // 视频链接
   Future<void> queryVideoUrl({
     bool fromReset = false,
@@ -842,18 +890,69 @@ class VideoDetailController extends GetxController
             : Pref.defaultAudioQaCellular;
     }
 
-    final result = await VideoHttp.videoUrl(
+    final actualVideoType = _actualVideoType ?? videoType;
+    final isBangumiPlayback =
+        videoType == VideoType.pgc || args['pgcApi'] == true;
+    if (isBangumiPlayback) {
+      await BangumiSourceService.refreshVipState();
+    }
+    final vipState = isBangumiPlayback
+        ? BangumiSourceService.vipState
+        : VipState.unknown;
+    final selectedPolicy = isBangumiPlayback
+        ? BangumiSourceService.resolveInitialPolicy()
+        : BangumiSourcePolicy.official;
+    if (isBangumiPlayback) {
+      BangumiSourceService.logDecision(
+        cid: cid.value,
+        bvid: bvid,
+        epId: epId,
+        seasonId: seasonId,
+        vipState: vipState,
+        policy: selectedPolicy,
+      );
+    }
+
+    LoadingState<PlayUrlModel> result = await VideoHttp.videoUrl(
       cid: cid.value,
       bvid: bvid,
       epid: epId,
       seasonId: seasonId,
       tryLook: plPlayerController.tryLook,
-      videoType: _actualVideoType ?? videoType,
+      videoType: actualVideoType,
       language: currLang.value,
       voiceBalance: plPlayerController.enableAudioNormalization,
     );
+    bool attemptedFallback = false;
+
+    if (isBangumiPlayback) {
+      BangumiSourceService.logOfficialResult(result);
+      if (BangumiSourceService.shouldTryFallback(
+        vipState: vipState,
+        officialResult: result,
+      )) {
+        attemptedFallback = true;
+        result = await BangumiSourceService.fallbackPlayUrl(
+          cid: cid.value,
+          bvid: bvid,
+          epId: epId,
+          seasonId: seasonId,
+          seriesTitle: _bangumiSeriesTitle,
+          episodeTitle: _bangumiEpisodeTitle,
+          episodeIndex: _bangumiEpisodeIndex,
+        );
+        BangumiSourceService.logFallbackResult(result);
+      }
+    }
 
     if (result case Success(:final response)) {
+      if (isBangumiPlayback && BangumiSourceService.showBangumiSourceToast) {
+        _showBangumiSourceToast(
+          attemptedFallback
+              ? BangumiSourcePolicy.fallback
+              : BangumiSourcePolicy.official,
+        );
+      }
       data = response;
 
       languages.value = data.language?.items;
@@ -1005,7 +1104,32 @@ class VideoDetailController extends GetxController
       if (plPlayerController.isFullScreen.value) {
         plPlayerController.triggerFullScreen(status: false);
       }
-      result.toast();
+      if (isBangumiPlayback && result is Error) {
+        final errMsg = result.errMsg ?? '';
+        if (attemptedFallback) {
+          if (errMsg == '自定义番剧源未启用' ||
+              errMsg == '自定义番剧源地址未配置' ||
+              errMsg == '当前版本仅提供自定义番剧源配置骨架，尚未接入实际源实现') {
+            SmartDialog.showToast(
+              vipState == VipState.unknown
+                  ? '未配置自定义番剧源（会员状态未知）'
+                  : errMsg,
+            );
+          } else {
+            SmartDialog.showToast(
+              vipState == VipState.unknown
+                  ? '账号状态异常，备用播放源不可用'
+                  : '备用播放源不可用',
+            );
+          }
+        } else {
+          SmartDialog.showToast(
+            '官方播放源获取失败${errMsg.isEmpty ? '' : '：$errMsg'}',
+          );
+        }
+      } else {
+        result.toast();
+      }
     }
     isQuerying = false;
   }

@@ -445,8 +445,40 @@ abstract final class Pref {
   static bool get autoUpdate =>
       _setting.get(SettingBoxKey.autoUpdate, defaultValue: true);
 
+  static String get ignoredUpdateVersion =>
+      _setting.get(SettingBoxKey.ignoredUpdateVersion, defaultValue: '');
+
   static bool get horizontalPreview =>
       _setting.get(SettingBoxKey.horizontalPreview, defaultValue: false);
+
+  static bool get enableBangumiCustomSource =>
+      _setting.get(SettingBoxKey.enableBangumiCustomSource, defaultValue: false);
+
+  static String get bangumiCustomSourceUrl =>
+      _setting.get(SettingBoxKey.bangumiCustomSourceUrl, defaultValue: '');
+
+  static bool get showBangumiSourceToast =>
+      _setting.get(SettingBoxKey.showBangumiSourceToast, defaultValue: false);
+
+  static bool get tryBangumiCustomSourceOnOfficialFailure => _setting.get(
+    SettingBoxKey.tryBangumiCustomSourceOnOfficialFailure,
+    defaultValue: true,
+  );
+
+  static String get bangumiEmbyServerUrl =>
+      _setting.get(SettingBoxKey.bangumiEmbyServerUrl, defaultValue: '');
+
+  static String get bangumiEmbyLibraryId =>
+      _setting.get(SettingBoxKey.bangumiEmbyLibraryId, defaultValue: '');
+
+  static String get bangumiEmbyUsername =>
+      _setting.get(SettingBoxKey.bangumiEmbyUsername, defaultValue: '');
+
+  static String get bangumiEmbyAccessToken =>
+      _setting.get(SettingBoxKey.bangumiEmbyAccessToken, defaultValue: '');
+
+  static String get bangumiEmbyUserId =>
+      _setting.get(SettingBoxKey.bangumiEmbyUserId, defaultValue: '');
 
   static bool get openInBrowser =>
       _setting.get(SettingBoxKey.openInBrowser, defaultValue: false);
@@ -594,6 +626,9 @@ abstract final class Pref {
 
   static bool get showPgcTimeline =>
       _setting.get(SettingBoxKey.showPgcTimeline, defaultValue: true);
+
+  static String get playerProgressBarStyle =>
+      _setting.get(SettingBoxKey.playerProgressBarStyle, defaultValue: 'default');
 
   static num get maxCacheSize =>
       _setting.get(SettingBoxKey.maxCacheSize) ?? pow(1024, 3);

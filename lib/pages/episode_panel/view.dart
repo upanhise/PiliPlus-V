@@ -30,7 +30,6 @@ import 'package:PiliPlus/utils/extension/num_ext.dart';
 import 'package:PiliPlus/utils/extension/scroll_controller_ext.dart';
 import 'package:PiliPlus/utils/id_utils.dart';
 import 'package:PiliPlus/utils/platform_utils.dart';
-import 'package:PiliPlus/utils/storage_pref.dart';
 import 'package:PiliPlus/utils/utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart' hide TabBarView;
@@ -360,7 +359,6 @@ class _EpisodePanelState extends State<EpisodePanel>
     );
   }
 
-  late final int? vipStatus = Pref.userInfoCache?.vipStatus;
   Widget _buildEpisodeItem({
     required ThemeData theme,
     required ugc.BaseEpisodeItem episode,
@@ -433,12 +431,6 @@ class _EpisodePanelState extends State<EpisodePanel>
           type: MaterialType.transparency,
           child: InkWell(
             onTap: () {
-              if (episode.badge == "会员" &&
-                  Accounts.mainEqVideo &&
-                  vipStatus != 1) {
-                SmartDialog.showToast('需要大会员');
-                // return;
-              }
               SmartDialog.showToast('切换到：$title');
               widget.onClose?.call();
 

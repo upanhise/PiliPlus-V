@@ -35,7 +35,7 @@ class RcmdVideoItemAppModel extends BaseRcmdVideoItemModel {
     if (isFollowed) rcmdReason = null;
 
     goto = json['goto'];
-    param = int.parse(json['param']);
+    param = int.tryParse(json['param']?.toString() ?? '') ?? 0;
     uri = json['uri'];
     talkBack = json['talk_back'];
 

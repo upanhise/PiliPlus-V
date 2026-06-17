@@ -28,6 +28,7 @@ import 'package:PiliPlus/pages/setting/widgets/slider_dialog.dart';
 import 'package:PiliPlus/pages/video/reply/widgets/reply_item_grpc.dart';
 import 'package:PiliPlus/plugin/pl_player/controller.dart';
 import 'package:PiliPlus/services/download/download_service.dart';
+import 'package:PiliPlus/services/emby_source_service.dart';
 import 'package:PiliPlus/utils/accounts.dart';
 import 'package:PiliPlus/utils/cache_manager.dart';
 import 'package:PiliPlus/utils/extension/num_ext.dart';
@@ -128,6 +129,60 @@ List<SettingsModel> get extraSettings => [
     leading: Icon(MdiIcons.commentTextOutline),
     setKey: SettingBoxKey.showBangumiReply,
     defaultVal: true,
+  ),
+  const SwitchModel(
+    title: '启用自定义番剧源',
+    subtitle: '官方番剧权限失败时，可回退到自有 Emby 源',
+    leading: Icon(Icons.hub_outlined),
+    setKey: SettingBoxKey.enableBangumiCustomSource,
+    defaultVal: false,
+  ),
+  NormalModel(
+    title: 'Emby 自定义源配置',
+    leading: const Icon(Icons.link_outlined),
+    getSubtitle: () {
+      if (!Pref.enableBangumiCustomSource) {
+        return '请先启用自定义番剧源';
+      }
+      if (Pref.bangumiEmbyServerUrl.isEmpty) {
+        return '点击配置 Emby 服务器与登录';
+      }
+      if (Pref.bangumiEmbyAccessToken.isEmpty) {
+        return '服务器：${Pref.bangumiEmbyServerUrl}（未登录）';
+      }
+      return '已登录 ${Pref.bangumiEmbyUsername.isEmpty ? 'Emby' : Pref.bangumiEmbyUsername}';
+    },
+    onTap: (context, setState) {
+      if (!Pref.enableBangumiCustomSource) {
+        SmartDialog.showToast('请先启用自定义番剧源');
+        return;
+      }
+      _showEmbySourceConfigDialog(context, setState);
+    },
+  ),
+  NormalModel(
+    title: '清除番剧手动绑定',
+    subtitle: '移除当前保存的 Emby 番剧绑定缓存',
+    leading: const Icon(Icons.cleaning_services_outlined),
+    onTap: (context, setState) async {
+      await GStorage.setting.delete(SettingBoxKey.bangumiEmbyBindings);
+      EmbySourceService.clearBindingsCache();
+      SmartDialog.showToast('已清除手动绑定缓存');
+      setState();
+    },
+  ),
+  const SwitchModel(
+    title: '官方权限失败时尝试自定义番剧源',
+    subtitle: '大会员不会自动降级；仅在官方权限失败时尝试自定义源接口',
+    leading: Icon(Icons.alt_route_outlined),
+    setKey: SettingBoxKey.tryBangumiCustomSourceOnOfficialFailure,
+    defaultVal: true,
+  ),
+  const SwitchModel(
+    title: '显示当前番剧源提示',
+    leading: Icon(Icons.info_outline),
+    setKey: SettingBoxKey.showBangumiSourceToast,
+    defaultVal: false,
   ),
   const SwitchModel(
     title: '默认展开视频简介',
@@ -805,6 +860,178 @@ void _showDynDialog(BuildContext context) {
       ],
     ),
   );
+}
+
+void _showEmbySourceConfigDialog(
+  BuildContext context,
+  VoidCallback setState,
+) {
+  String serverUrl = Pref.bangumiEmbyServerUrl;
+  String libraryId = Pref.bangumiEmbyLibraryId;
+  String username = Pref.bangumiEmbyUsername;
+  String password = '';
+  bool isLoggingIn = false;
+
+  showDialog(
+    context: context,
+    builder: (context) => StatefulBuilder(
+      builder: (context, localSetState) => AlertDialog(
+        title: const Text('Emby 自定义番剧源'),
+        content: SingleChildScrollView(
+          child: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              TextFormField(
+                initialValue: serverUrl,
+                keyboardType: TextInputType.url,
+                onChanged: (v) => serverUrl = _normalizeBangumiSourceUrl(v),
+                enabled: !isLoggingIn,
+                decoration: const InputDecoration(
+                  labelText: '服务器地址',
+                  hintText: 'https://dongman.theluyuan.com',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: libraryId,
+                onChanged: (v) => libraryId = v.trim(),
+                enabled: !isLoggingIn,
+                decoration: const InputDecoration(
+                  labelText: '媒体库 ID（可选）',
+                  hintText: '限制搜索范围',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                initialValue: username,
+                onChanged: (v) => username = v.trim(),
+                enabled: !isLoggingIn,
+                decoration: const InputDecoration(
+                  labelText: '用户名',
+                ),
+              ),
+              const SizedBox(height: 12),
+              TextFormField(
+                obscureText: true,
+                onChanged: (v) => password = v,
+                enabled: !isLoggingIn,
+                decoration: const InputDecoration(
+                  labelText: '密码',
+                ),
+              ),
+              if (Pref.bangumiEmbyAccessToken.isNotEmpty) ...[
+                const SizedBox(height: 12),
+                Text(
+                  '当前登录用户：${Pref.bangumiEmbyUsername.isEmpty ? 'Emby' : Pref.bangumiEmbyUsername}',
+                  style: TextStyle(
+                    color: Theme.of(context).colorScheme.secondary,
+                  ),
+                ),
+              ],
+            ],
+          ),
+        ),
+        actions: [
+          TextButton(
+            onPressed: isLoggingIn ? null : Get.back,
+            child: Text(
+              '取消',
+              style: TextStyle(color: ColorScheme.of(context).outline),
+            ),
+          ),
+          if (Pref.bangumiEmbyAccessToken.isNotEmpty)
+            TextButton(
+              onPressed: isLoggingIn
+                  ? null
+                  : () async {
+                      await GStorage.setting.delete(
+                        SettingBoxKey.bangumiEmbyAccessToken,
+                      );
+                      await GStorage.setting.delete(
+                        SettingBoxKey.bangumiEmbyUserId,
+                      );
+                      Get.back();
+                      setState();
+                      SmartDialog.showToast('已退出 Emby 登录');
+                    },
+              child: const Text('退出登录'),
+            ),
+          TextButton(
+            onPressed: isLoggingIn
+                ? null
+                : () async {
+                    localSetState(() => isLoggingIn = true);
+                    try {
+                      serverUrl = _normalizeBangumiSourceUrl(serverUrl);
+                      if (serverUrl.isNotEmpty &&
+                          !_isValidBangumiSourceUrl(serverUrl)) {
+                        SmartDialog.showToast(
+                          '请输入以 http:// 或 https:// 开头的合法地址',
+                        );
+                        return;
+                      }
+                      if (serverUrl.isEmpty) {
+                        SmartDialog.showToast('服务器地址不能为空');
+                        return;
+                      }
+                      if (username.isEmpty || password.isEmpty) {
+                        SmartDialog.showToast('用户名和密码不能为空');
+                        return;
+                      }
+
+                      // 保存服务器/库/用户名，再登录
+                      await GStorage.setting.put(
+                        SettingBoxKey.bangumiEmbyServerUrl,
+                        serverUrl,
+                      );
+
+                      await GStorage.setting.put(
+                        SettingBoxKey.bangumiEmbyLibraryId,
+                        libraryId,
+                      );
+                      await GStorage.setting.put(
+                        SettingBoxKey.bangumiEmbyUsername,
+                        username,
+                      );
+
+                      final result = await EmbySourceService.login(
+                        username: username,
+                        password: password,
+                      );
+                      if (result is Error) {
+                        SmartDialog.showToast(result.errMsg ?? '登录失败');
+                        return;
+                      }
+                      Get.back();
+                      setState();
+                      SmartDialog.showToast('Emby 登录成功');
+                    } finally {
+                      localSetState(() => isLoggingIn = false);
+                    }
+                  },
+            child: isLoggingIn
+                ? const SizedBox(
+                    width: 16,
+                    height: 16,
+                    child: CircularProgressIndicator(strokeWidth: 2),
+                  )
+                : const Text('登录'),
+          ),
+        ],
+      ),
+    ),
+  );
+}
+
+String _normalizeBangumiSourceUrl(String value) =>
+    value.trim().replaceFirst(RegExp(r'/+$'), '');
+
+bool _isValidBangumiSourceUrl(String value) {
+  final uri = Uri.tryParse(value);
+  return uri != null &&
+      uri.hasScheme &&
+      (uri.isScheme('http') || uri.isScheme('https')) &&
+      uri.host.isNotEmpty;
 }
 
 void _showReplyLengthDialog(BuildContext context, VoidCallback setState) {

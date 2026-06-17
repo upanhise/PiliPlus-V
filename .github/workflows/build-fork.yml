@@ -1,0 +1,146 @@
+name: Build Fork
+
+on:
+  push:
+    branches:
+      - minis/**
+      - dev-start
+      - main
+    paths-ignore:
+      - "**.md"
+  pull_request:
+    branches:
+      - minis/**
+      - dev-start
+      - main
+  workflow_dispatch:
+
+jobs:
+  android-build:
+    name: Android APK
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      actions: read
+
+    steps:
+      - name: 代码迁出
+        uses: actions/checkout@v6
+        with:
+          fetch-depth: 0
+
+      - name: 构建 Java 环境
+        uses: actions/setup-java@v5
+        with:
+          distribution: "zulu"
+          java-version: "17"
+          cache: "gradle"
+          cache-dependency-path: |
+            android/*.gradle*
+            android/**/gradle-wrapper.properties
+
+      - name: 安装 Flutter
+        uses: subosito/flutter-action@v2
+        id: flutter-action
+        with:
+          channel: stable
+          flutter-version: 3.44.2
+          cache: true
+
+      - name: Apply Patch
+        shell: pwsh
+        run: lib/scripts/patch.ps1 android
+
+      - name: Set and Extract version
+        shell: pwsh
+        run: lib/scripts/build.ps1 android
+
+      - name: Write Build Summary
+        shell: bash
+        run: |
+          cat APK_CHANGELOG_MINIS.md >> "$GITHUB_STEP_SUMMARY"
+
+      - name: Flutter Pub Get
+        run: flutter pub get
+
+      - name: Flutter Analyze
+        run: flutter analyze --no-fatal-infos || true
+
+      - name: Flutter Test
+        shell: bash
+        run: |
+          if [ -d test ]; then
+            flutter test
+          else
+            echo "No test directory found; skip flutter test."
+          fi
+
+      - name: Configure Release Signing
+        shell: bash
+        env:
+          ANDROID_KEYSTORE_BASE64: ${{ secrets.ANDROID_KEYSTORE_BASE64 }}
+          ANDROID_KEYSTORE_PASSWORD: ${{ secrets.ANDROID_KEYSTORE_PASSWORD }}
+          ANDROID_KEY_ALIAS: ${{ secrets.ANDROID_KEY_ALIAS }}
+          ANDROID_KEY_PASSWORD: ${{ secrets.ANDROID_KEY_PASSWORD }}
+        run: |
+          if [ -z "$ANDROID_KEYSTORE_BASE64" ] || [ -z "$ANDROID_KEYSTORE_PASSWORD" ] || [ -z "$ANDROID_KEY_ALIAS" ] || [ -z "$ANDROID_KEY_PASSWORD" ]; then
+            echo "Release signing secrets are incomplete; Gradle will use its configured fallback signing config."
+            exit 0
+          fi
+          printf '%s' "$ANDROID_KEYSTORE_BASE64" | base64 --decode > android/app/release.jks
+          {
+            echo "storeFile=release.jks"
+            echo "storePassword=$ANDROID_KEYSTORE_PASSWORD"
+            echo "keyAlias=$ANDROID_KEY_ALIAS"
+            echo "keyPassword=$ANDROID_KEY_PASSWORD"
+          } > android/key.properties
+
+      - name: Flutter Build APK
+        run: flutter build apk --release --split-per-abi --dart-define-from-file=pili_release.json --pub --verbose
+
+      - name: 重命名 APK
+        run: |
+          version="${{ env.artifact_version }}"
+          if [ -z "$version" ]; then
+            version="${{ env.version }}"
+          fi
+          if [ -z "$version" ]; then
+            version="dev-${GITHUB_SHA::9}"
+          fi
+          shopt -s nullglob
+          files=(build/app/outputs/flutter-apk/app-*-release.apk)
+          if [ ${#files[@]} -eq 0 ]; then
+            echo "No release APK files found."
+            exit 1
+          fi
+          for file in "${files[@]}"; do
+            abi=$(echo "$file" | sed -E 's|.*app-(.*)-release\.apk|\1|')
+            mv "$file" "PiliPlus_android_${version}_${abi}.apk"
+          done
+
+      - name: 上传 Artifact (arm64-v8a)
+        uses: actions/upload-artifact@v7
+        with:
+          name: Android_arm64-v8a
+          path: |
+            PiliPlus_android_*_arm64-v8a.apk
+            APK_CHANGELOG_MINIS.md
+          if-no-files-found: error
+
+      - name: 上传 Artifact (armeabi-v7a)
+        uses: actions/upload-artifact@v7
+        with:
+          name: Android_armeabi-v7a
+          path: |
+            PiliPlus_android_*_armeabi-v7a.apk
+            APK_CHANGELOG_MINIS.md
+          if-no-files-found: error
+
+      - name: 上传 Artifact (x86_64)
+        uses: actions/upload-artifact@v7
+        with:
+          name: Android_x86_64
+          path: |
+            PiliPlus_android_*_x86_64.apk
+            APK_CHANGELOG_MINIS.md
+          if-no-files-found: error
